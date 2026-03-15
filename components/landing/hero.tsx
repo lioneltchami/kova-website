@@ -131,12 +131,17 @@ export function Hero() {
 			ref={ref}
 			className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden"
 		>
-			{/* Parallax wolf silhouette */}
+			{/* Parallax wolf silhouette -- visible watermark */}
 			<motion.div
 				style={{ y: wolfY }}
-				className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1] opacity-[0.03]"
+				className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1]"
 			>
-				<WolfLogo size={500} />
+				<div
+					className="opacity-[0.08]"
+					style={{ filter: "drop-shadow(0 0 40px rgba(67, 97, 238, 0.3))" }}
+				>
+					<WolfLogo size={600} />
+				</div>
 			</motion.div>
 
 			{/* Background: Canvas Fractal Grid */}
