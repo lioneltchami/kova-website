@@ -1,0 +1,139 @@
+---
+title: kova run
+description: Plan and execute a build in a single command without a manual review step
+---
+
+# kova run
+
+Plan and build in a single command. `kova run` creates a plan and immediately executes it, skipping the manual review step between `kova plan` and `kova build`. Use it for well-understood tasks where you trust the planning output.
+
+## Usage
+
+```bash
+kova run "<prompt>" [flags]
+```
+
+## Flags
+
+| Flag                | Description                                                                                  | Default |
+| ------------------- | -------------------------------------------------------------------------------------------- | ------- |
+| `--no-auto`         | Pause after planning for manual review before building                                       | false   |
+| `--template <name>` | Use a plan template: `feature`, `bugfix`, `refactor`, `migration`, `security`, `performance` | none    |
+| `--live`            | Show live agent output during build                                                          | false   |
+| `--issue <number>`  | Fetch GitHub issue context to use as the prompt                                              | none    |
+| `--branch <name>`   | Create a specific branch name instead of auto-generating                                     | none    |
+| `--no-branch`       | Skip git branch creation                                                                     | false   |
+
+## Examples
+
+### Run with Immediate Build
+
+```bash
+kova run "fix the broken pagination on the posts list"
+```
+
+### Use a Template
+
+Templates inject structured context that improves plan quality for common task types:
+
+```bash
+kova run --template bugfix "users cannot log in after password reset"
+```
+
+### Show Live Output
+
+Stream agent output to the terminal as each task executes:
+
+```bash
+kova run --live "add email notifications for new comments"
+```
+
+### From a GitHub Issue
+
+Fetches the issue body and comments as the prompt:
+
+```bash
+kova run --issue 87
+```
+
+### Pause for Review
+
+Creates the plan but waits for you to confirm before executing:
+
+```bash
+kova run --no-auto "refactor the authentication module"
+```
+
+With `--no-auto`, Kova outputs:
+
+```
+Plan created: .claude/tasks/refactor-auth.md
+
+Review the plan, then run:
+  kova build .claude/tasks/refactor-auth.md
+
+Or cancel with Ctrl+C
+```
+
+### Specify a Branch Name
+
+```bash
+kova run --branch feat/payment-webhooks "add webhook handling for stripe payment events"
+```
+
+## Sample Output
+
+```
+Planning...  (using opus model)
+
+Plan created: .claude/tasks/pagination-fix.md
+  3 tasks across 2 agents
+  Estimated time: ~4 minutes
+
+Building...
+
+Progress: [=======>        ] 2/3 tasks (66%)
+
+  [done]    identify-root-cause    sonnet   1m 12s
+  [done]    fix-pagination-logic   sonnet   1m 48s
+  [running] quality-validation     sonnet   started 30s ago
+
+Build Complete: SUCCESS
+  Tasks: 3/3 passed
+  Duration: 3m 50s
+  Token Usage: 38,200 total
+  Cost Estimate: $0.12
+```
+
+## When to Use kova run vs kova plan + kova build
+
+| Situation                                  | Recommended Approach                                        |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| Simple, well-understood bug fix            | `kova run`                                                  |
+| Complex or risky architectural change      | `kova plan`, review, then `kova build`                      |
+| You want to edit the plan before executing | `kova plan` separately                                      |
+| Automated CI pipeline                      | `kova run` or `kova plan --auto-build`                      |
+| Large multi-domain feature                 | `kova plan`, review, then `kova build` or `kova team-build` |
+| First time using Kova on a codebase        | `kova plan` to see what it generates                        |
+
+The key difference is human review. `kova run` optimizes for speed; `kova plan` + `kova build` optimizes for control. Use `--no-auto` when you want speed with a safety pause.
+
+## How It Works
+
+`kova run` is equivalent to running:
+
+```bash
+kova plan "<prompt>" [shared-flags] --auto-build
+```
+
+It passes your prompt and flags to the planning step, then immediately invokes `kova build` on the resulting plan file. The checkpoint file is created as normal, so if the build is interrupted you can resume with:
+
+```bash
+kova build --resume
+```
+
+## Related
+
+- [kova plan](/docs/commands/plan) - Plan creation with manual review
+- [kova build](/docs/commands/build) - Build execution reference
+- [kova team-build](/docs/commands/team-build) - Peer-to-peer agent coordination for cross-domain builds

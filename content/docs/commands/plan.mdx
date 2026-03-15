@@ -1,0 +1,169 @@
+---
+title: kova plan
+description: Analyze your codebase and create a structured AI implementation plan with task graph and agent assignments
+---
+
+# kova plan
+
+Analyze your codebase and create a structured implementation plan before writing any code. The planning agent examines your project structure, identifies affected files, maps dependencies, and generates a markdown plan with phased tasks, specialist agent assignments, and acceptance criteria.
+
+## Usage
+
+```bash
+kova plan "<prompt>" [flags]
+```
+
+## Flags
+
+| Flag                | Description                                                                                  | Default                               |
+| ------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `--template <name>` | Use a plan template: `feature`, `bugfix`, `refactor`, `migration`, `security`, `performance` | none                                  |
+| `--model <model>`   | Model to use for planning: `haiku`, `sonnet`, `opus`                                         | `opus`                                |
+| `--auto-build`      | Automatically start build after plan is approved                                             | false                                 |
+| `--output <path>`   | Save plan to a custom file path                                                              | `.claude/tasks/<timestamp>-<slug>.md` |
+| `--issue <number>`  | Fetch GitHub issue body and comments to use as planning context                              | none                                  |
+| `--no-branch`       | Skip automatic git branch creation                                                           | false                                 |
+
+## Examples
+
+### Basic Plan
+
+```bash
+kova plan "add stripe payment processing to the checkout flow"
+```
+
+### With Template
+
+Templates inject structured context for common task types. The `feature` template includes prompts for acceptance criteria, affected files, and rollback steps:
+
+```bash
+kova plan --template feature "add user profiles with avatar upload"
+```
+
+### From a GitHub Issue
+
+Fetches the issue title, body, labels, and comments from GitHub and uses them as planning context:
+
+```bash
+kova plan --issue 42
+```
+
+### Plan and Build Immediately
+
+Creates the plan and proceeds to build without a manual review step:
+
+```bash
+kova plan --auto-build "fix the N+1 query in the posts list endpoint"
+```
+
+### Custom Output Path
+
+```bash
+kova plan --output kova-plans/auth-overhaul.md "redesign the authentication system"
+```
+
+### Use a Cheaper Planning Model
+
+For well-understood tasks where `opus` is not needed:
+
+```bash
+kova plan --model sonnet "rename the UserProfile component to ProfileCard"
+```
+
+## Sample Output
+
+```
+Planning...  (using opus model)
+
+Analyzing codebase...
+  Found 34 files in src/
+  Identified app/give.tsx (current donate page)
+  Detected Stripe publishable key already configured
+  Found stripe-donate Edge Function
+
+Plan created: .claude/tasks/stripe-payment-processing.md
+
+Summary:
+  Objective:  Add Stripe payment processing to give page
+  Phases:     3 (API updates, component, testing)
+  Tasks:      7
+  Agents:     frontend-specialist, backend-engineer, quality-engineer
+  Est. Models: 2x haiku, 3x sonnet, 1x opus, 1x sonnet (validation)
+
+Task Graph:
+  1. [haiku]  update-api-contract       (no deps)
+  2. [sonnet] implement-payment-intent  (depends on 1)
+  3. [sonnet] build-payment-form        (depends on 1)
+  4. [sonnet] wire-stripe-elements      (depends on 2, 3)
+  5. [haiku]  add-confirmation-screen   (depends on 4)
+  6. [sonnet] integration-tests         (depends on 4, 5)
+  7. [sonnet] quality-validation        (depends on all)
+
+Proceed with build? [Y/n/edit]
+```
+
+## How It Works
+
+1. **Validation**: Checks that `.claude/` exists. If not, suggests running `kova init` first.
+2. **Codebase Analysis**: The planning agent reads `kova.yaml`, project structure, and relevant source files to understand the current state.
+3. **Dependency Mapping**: Identifies which files, APIs, and services the change will touch.
+4. **Task Graph Design**: Breaks work into atomic tasks with explicit `depends_on` relationships to prevent race conditions between agents.
+5. **Agent Assignment**: Assigns the right specialist to each task based on domain: `frontend-specialist`, `backend-engineer`, `supabase-specialist`, `security-auditor`, etc.
+6. **Model Selection**: Selects `haiku`, `sonnet`, or `opus` per task using complexity signals including file count, security keywords, and dependency depth.
+7. **Plan Output**: Writes the plan to `.claude/tasks/` as a structured markdown file.
+
+## Plan File Format
+
+The generated plan is a markdown file you can review and edit before building:
+
+```markdown
+## Objective
+
+Add Stripe payment processing to the give page.
+
+## Relevant Files
+
+- `app/give.tsx` - Donation form
+- `supabase/functions/stripe-donate/index.ts` - Payment Edge Function
+- `lib/services/giving.ts` - Giving service layer
+
+## Step by Step Tasks
+
+### 1. Update API contract
+
+- Task ID: update-api-contract
+- Agent: backend-engineer
+- Model: haiku
+- Depends On: none
+
+### 2. Implement payment intent
+
+- Task ID: implement-payment-intent
+- Agent: backend-engineer
+- Model: sonnet
+- Depends On: update-api-contract
+
+## Acceptance Criteria
+
+1. Payment form renders with Stripe Elements
+2. Successful payment creates a donation record in the database
+3. Failed payment shows a user-facing error message
+4. All TypeScript types pass `tsc --noEmit`
+```
+
+## Available Templates
+
+| Template      | Best For                                               |
+| ------------- | ------------------------------------------------------ |
+| `feature`     | New feature with acceptance criteria and rollback plan |
+| `bugfix`      | Bug fix with reproduction steps and regression tests   |
+| `refactor`    | Code refactor with compatibility guarantees            |
+| `migration`   | Database migration with rollback SQL                   |
+| `security`    | Security audit or fix with threat model                |
+| `performance` | Performance optimization with before/after benchmarks  |
+
+## Related
+
+- [kova build](/docs/commands/build) - Execute the generated plan
+- [kova run](/docs/commands/run) - Combined plan and build in one command
+- [Configuration](/docs/getting-started/configuration) - Setting default models and boundaries

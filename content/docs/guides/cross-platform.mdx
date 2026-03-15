@@ -1,0 +1,291 @@
+---
+title: Cross-Platform
+description: Using Kova on Windows, macOS, and Linux — platform-specific behavior and known differences
+---
+
+# Cross-Platform
+
+Kova runs on Windows, macOS, and Linux. The CLI interface and plan format are identical across platforms. The differences are in subprocess spawning, file path handling, and atomic write implementation. This page documents those differences and how Kova handles them transparently.
+
+## Platform Detection
+
+Kova reads `process.platform` at runtime to select platform-specific code paths:
+
+```
+"win32"  -- Windows
+"darwin" -- macOS
+"linux"  -- Linux
+```
+
+Platform detection is automatic. You do not configure it.
+
+---
+
+## Windows
+
+### Shell Execution
+
+npm-installed CLI tools on Windows are `.cmd` wrappers. When Node.js spawns a `.cmd` file, it must use `shell: true` or the process fails with `ENOENT`. Kova sets `shell: true` automatically for all subprocesses on `win32`:
+
+```typescript
+// Kova internals -- simplified
+const isWindows = process.platform === "win32";
+
+await execa("claude", args, {
+  cwd: projectDir,
+  shell: isWindows, // true on Windows, false elsewhere
+  stdio: "pipe",
+});
+```
+
+This applies to invocations of `claude`, `gh`, `git`, and any quality commands configured in `kova.yaml` (such as `npm test` or `pnpm lint`). You do not need to configure anything. Kova detects the platform at startup and applies the correct setting for every subprocess call.
+
+### Path Separators and Glob Normalization
+
+Windows uses backslashes (`\`) in filesystem paths. Kova normalizes all paths to forward slashes internally, including in:
+
+- Plan files (`.claude/tasks/plan-name.md`)
+- Checkpoint files (`.progress.json` path fields)
+- Boundary glob patterns in `kova.yaml`
+- Agent context (relevant file paths passed to agents)
+
+```json
+// .progress.json on Windows -- forward slashes throughout
+{
+  "plan": ".claude/tasks/add-user-profiles.md",
+  "tasks": {
+    "setup-storage": {
+      "status": "completed"
+    }
+  }
+}
+```
+
+Glob patterns in `kova.yaml` boundaries use forward slashes on all platforms:
+
+```yaml
+boundaries:
+  never_touch:
+    - "*.lock"
+    - ".env*"
+    - "node_modules/**"
+    - "src/generated/**"
+```
+
+These patterns work identically on Windows, macOS, and Linux.
+
+### Atomic Checkpoint Writes
+
+On Unix, atomic file writes use `rename()` (write to temp, rename to target). On Windows, Kova first unlinks (deletes) the existing file, then renames the temp file to the target path. This two-step approach avoids the Windows restriction on renaming to a path that already exists:
+
+```typescript
+// Windows atomic write
+await fs.unlink(targetPath).catch(() => {}); // ignore if not exists
+await fs.rename(tempPath, targetPath);
+
+// Unix atomic write
+await fs.rename(tempPath, targetPath); // atomic on POSIX
+```
+
+This guarantees the checkpoint is never in an inconsistent state, even if the process is killed between the unlink and rename steps. In that case, the old checkpoint is gone but the temp file still exists. Kova detects and recovers orphaned temp files at startup.
+
+### PowerShell and cmd
+
+Kova works in both PowerShell and cmd without any difference in behavior:
+
+```powershell
+# PowerShell
+kova init
+kova plan "add user authentication"
+kova build
+kova pr
+```
+
+```cmd
+:: cmd.exe
+kova init
+kova plan "add user authentication"
+kova build
+kova pr
+```
+
+### Fixing PATH Issues on Windows
+
+After `npm install -g kova-cli`, if `kova` is not recognized:
+
+```
+'kova' is not recognized as an internal or external command
+```
+
+The npm global bin directory is not in your PATH. Add it:
+
+1. Find the path with: `npm config get prefix`
+2. Add that path (plus `\` at the end) to your user PATH in System Properties > Environment Variables.
+
+Alternatively, use `npx`:
+
+```cmd
+npx kova-cli init
+npx kova-cli plan "add feature"
+```
+
+Or restart your terminal after global install. Windows sometimes requires a new shell session for PATH changes to take effect.
+
+---
+
+## macOS
+
+No special configuration is required on macOS. Install Node.js via Homebrew or nvm:
+
+```bash
+# Homebrew
+brew install node
+npm install -g kova-cli
+
+# nvm
+nvm install 22
+nvm use 22
+npm install -g kova-cli
+```
+
+Verify the install:
+
+```bash
+kova --version
+kova init
+```
+
+### Shell Completions (macOS)
+
+For zsh (default on macOS Catalina+):
+
+```bash
+kova completions zsh >> ~/.zshrc
+source ~/.zshrc
+```
+
+For bash:
+
+```bash
+kova completions bash >> ~/.bash_profile
+source ~/.bash_profile
+```
+
+---
+
+## Linux
+
+Standard Node.js installation works on all major Linux distributions.
+
+### Install without sudo (recommended)
+
+Use nvm to avoid needing sudo for global npm installs:
+
+```bash
+# Install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# Restart shell or source profile
+source ~/.bashrc
+
+# Install Node.js 22
+nvm install 22
+nvm use 22
+
+# Install Kova
+npm install -g kova-cli
+```
+
+### Shell Completions (Linux)
+
+For bash:
+
+```bash
+kova completions bash >> ~/.bashrc
+source ~/.bashrc
+```
+
+For zsh:
+
+```bash
+kova completions zsh >> ~/.zshrc
+source ~/.zshrc
+```
+
+For fish:
+
+```bash
+kova completions fish > ~/.config/fish/completions/kova.fish
+```
+
+---
+
+## CI/CD Environments
+
+Kova works in GitHub Actions, GitLab CI, CircleCI, and other CI systems. All CI systems are treated as non-TTY environments, so `kova init` runs without prompts and uses defaults.
+
+### GitHub Actions example
+
+```yaml
+name: Kova Build
+on:
+  workflow_dispatch:
+    inputs:
+      plan:
+        description: Plan file path
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Kova
+        run: npm install -g kova-cli
+
+      - name: Run build
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: kova build ${{ inputs.plan }} --no-notify
+```
+
+### Required CI environment
+
+| Requirement           | Notes                           |
+| --------------------- | ------------------------------- |
+| Node.js 18+           | 20 or 22 recommended            |
+| `ANTHROPIC_API_KEY`   | Claude Code CLI authentication  |
+| `GITHUB_TOKEN`        | Required only for `kova pr`     |
+| `kova.yaml` committed | Kova reads config from the repo |
+
+### Committing kova.yaml
+
+Commit `kova.yaml` to your repository so all team members and CI environments use the same configuration. Do not commit `.progress.json` (add it to `.gitignore`).
+
+---
+
+## Platform Summary
+
+| Feature                      | Windows              | macOS     | Linux           |
+| ---------------------------- | -------------------- | --------- | --------------- |
+| shell: true for subprocesses | Yes (auto)           | No        | No              |
+| Path separator normalization | Yes (auto)           | No-op     | No-op           |
+| Atomic write (unlink+rename) | Yes (auto)           | rename()  | rename()        |
+| Shell completions            | PowerShell (planned) | bash, zsh | bash, zsh, fish |
+| CI support                   | Yes                  | Yes       | Yes             |
+| Minimum Node.js version      | 18                   | 18        | 18              |
+
+---
+
+## Related
+
+- [Installation](/docs/getting-started/installation) - Platform-specific installation instructions
+- [Checkpoint Recovery](/docs/guides/checkpoint-recovery) - Atomic write behavior and crash safety
+- [kova completions](/docs/commands/completions) - Shell completion setup

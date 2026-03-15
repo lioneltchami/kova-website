@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@import "fumadocs-ui/style.css";
+
+@theme inline {
+  --color-kova-charcoal: #1a1a2e;
+  --color-kova-charcoal-light: #252540;
+  --color-kova-blue: #4361ee;
+  --color-kova-blue-light: #5b7bff;
+  --color-kova-silver: #c0c0c8;
+  --color-kova-silver-dim: #8a8a94;
+  --color-kova-surface: #16162a;
+  --color-kova-border: #2a2a45;
+
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+:root {
+  --background: #1a1a2e;
+  --foreground: #c0c0c8;
+}
+
+.dark {
+  /* Fumadocs dark theme overrides for Kova palette */
+  --color-fd-background: #1a1a2e;
+  --color-fd-foreground: #c0c0c8;
+  --color-fd-primary: #4361ee;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-border: #2a2a45;
+  --color-fd-ring: #4361ee;
+  --color-fd-accent: #252540;
+  --color-fd-accent-foreground: #c0c0c8;
+  --color-fd-muted: #252540;
+  --color-fd-muted-foreground: #8a8a94;
+  --color-fd-secondary: #252540;
+  --color-fd-secondary-foreground: #c0c0c8;
+  --color-fd-card: #16162a;
+  --color-fd-card-foreground: #c0c0c8;
+  --color-fd-popover: #1a1a2e;
+  --color-fd-popover-foreground: #c0c0c8;
+}
+
+body {
+  background-color: var(--color-kova-charcoal, #1a1a2e);
+  color: var(--color-kova-silver, #c0c0c8);
+}

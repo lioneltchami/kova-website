@@ -1,0 +1,225 @@
+---
+title: Model Tiering
+description: Automatic haiku/sonnet/opus selection per task based on complexity signals — 3-10x cost savings
+---
+
+# Model Tiering
+
+Kova automatically assigns the appropriate Claude model to each task in a plan. Simple tasks use haiku, moderate tasks use sonnet, and complex or security-critical tasks use opus. This happens without any manual configuration and reduces build cost by 3-10x compared to running everything on opus.
+
+## The Three Tiers
+
+| Tier     | Model  | Input cost (per 1M) | Output cost (per 1M) | When assigned                                     |
+| -------- | ------ | ------------------- | -------------------- | ------------------------------------------------- |
+| Trivial  | haiku  | $0.25               | $1.25                | Single file, config change, rename, typo          |
+| Moderate | sonnet | $3.00               | $15.00               | 2-5 files, standard CRUD, bug fix, component      |
+| Complex  | opus   | $15.00              | $75.00               | Architecture, security, database schema, 5+ files |
+
+Haiku costs roughly 1/60th of opus for input tokens. Running a 7-task build with tiering instead of all-opus typically saves 40-70% of total cost.
+
+## How Auto-Selection Works
+
+When `models.auto` is `true` (the default), Kova calls the model selector for each task in the plan before dispatching any agents. The selector reads six signals from the task definition:
+
+### Signal 1: Explicit specification
+
+If the plan file specifies `Model: haiku` for a task, that wins unconditionally. No other signals are checked for that task.
+
+### Signal 2: File count
+
+Tasks touching more files require more context and coordination:
+
+- 0-1 files: haiku is considered
+- 2-4 files: sonnet floor
+- 5+ files: opus floor
+
+### Signal 3: Security and payment keywords
+
+If the task description matches keywords for auth, security, RLS, permissions, tokens, sessions, Stripe, payment, billing, subscription, or checkout, the model is elevated to at least sonnet. Security tasks touching more than 2 files use opus.
+
+```typescript
+touchesSecurity: /auth|security|rls|permission|token|session/i.test(
+  task.description,
+);
+touchesPayments: /stripe|payment|billing|subscription|checkout/i.test(
+  task.description,
+);
+```
+
+### Signal 4: Database keywords
+
+Tasks involving migrations, schema changes, indexes, triggers, or database functions use opus by default. Schema errors are expensive to roll back.
+
+```typescript
+touchesDatabase: /migration|schema|index|rls|trigger|function/i.test(
+  task.description,
+);
+```
+
+### Signal 5: Architectural keywords
+
+Refactors, redesigns, migrations, and overhauls involve cross-cutting concerns that a generalist generalization may miss. These use opus:
+
+```typescript
+isArchitectural: /refactor|redesign|migrate|overhaul/i.test(task.description);
+```
+
+### Signal 6: Simple keywords
+
+Tasks explicitly described as simple single-file changes use haiku:
+
+```typescript
+isSimple: /rename|typo|config|format|update version|add comment/i.test(
+  task.description,
+);
+```
+
+### Selection logic summary
+
+```
+if simple AND fileCount <= 1 AND no dependents:
+  → haiku
+
+if architectural OR (security AND fileCount > 2) OR dependentCount >= 3 OR fileCount >= 5:
+  → opus
+
+else:
+  → sonnet
+```
+
+## Signal Examples
+
+Tasks that get haiku:
+
+```
+"rename DATABASE_URL to DB_URL in .env.example"
+"fix typo in the README installation section"
+"update the copyright year in the footer component"
+"add missing semicolon in config.ts"
+```
+
+Tasks that get sonnet:
+
+```
+"add login form component with email and password fields"
+"create the /api/users GET endpoint with pagination"
+"fix the pagination bug on the posts list screen"
+"add loading state to the submit button"
+```
+
+Tasks that get opus:
+
+```
+"redesign the authentication system to support OAuth providers"
+"audit all RLS policies for potential data exposure"
+"migrate the REST API to GraphQL with a backward-compatible layer"
+"create the initial database schema with 8 tables and RLS policies"
+```
+
+## Overriding Model Assignment
+
+### Per-task in plan files
+
+Add a `Model:` line to any task in the plan markdown:
+
+```markdown
+### 1. Update app config
+
+- **Task ID**: update-config
+- **Agent**: general-purpose
+- **Model**: haiku
+- **Depends On**: none
+- Change the API base URL in src/config.ts from staging to production.
+```
+
+The specified model overrides auto-selection for that task only. Other tasks in the same plan still use auto-selection.
+
+### Globally in kova.yaml
+
+Override the model used for each complexity tier:
+
+```yaml
+models:
+  auto: true # keep auto-selection on
+  trivial: haiku # haiku for trivial tasks (default)
+  moderate: sonnet # sonnet for moderate tasks (default)
+  complex: opus # opus for complex tasks (default)
+  planning: opus # opus for kova plan (default)
+```
+
+To use sonnet for everything without disabling auto-selection routing, set all tiers to `sonnet`:
+
+```yaml
+models:
+  auto: true
+  trivial: sonnet
+  moderate: sonnet
+  complex: sonnet
+  planning: sonnet
+```
+
+To disable auto-selection entirely and use a single model for all tasks:
+
+```yaml
+models:
+  auto: false
+  moderate: sonnet # all tasks use sonnet
+```
+
+### At build time
+
+Override all tasks for a single build:
+
+```bash
+kova build --model-override haiku    # all tasks use haiku (fastest, cheapest)
+kova build --model-override opus     # all tasks use opus (highest quality)
+```
+
+`--model-override` takes precedence over both `kova.yaml` settings and per-task model specifications in the plan file.
+
+## Configuration Reference
+
+The full `models` section in `kova.yaml`:
+
+```yaml
+models:
+  auto: true # enable auto-selection based on complexity signals
+  trivial: haiku # model for trivial tasks (simple, 0-1 files)
+  moderate: sonnet # model for moderate tasks (2-4 files, standard work)
+  complex: opus # model for complex tasks (5+ files, security, architecture)
+  planning: opus # model used by kova plan to create the plan itself
+```
+
+## Cost Savings Example
+
+A typical 7-task feature build with all-opus:
+
+```
+7 tasks x 50,000 avg tokens x $15.00/1M input = $5.25 per build
+```
+
+Same build with tiering (2 haiku, 3 sonnet, 2 opus):
+
+```
+2 tasks haiku  x 15,000 tokens = 30,000  x $0.25/1M = $0.0075
+3 tasks sonnet x 35,000 tokens = 105,000 x $3.00/1M = $0.315
+2 tasks opus   x 80,000 tokens = 160,000 x $15.00/1M = $2.40
+
+Total: $2.72  (48% savings vs all-opus)
+```
+
+At 50 builds per month, the same tiered savings adds up to roughly $125/month compared to always using opus. Teams running many builds see 60-80% cost reduction.
+
+The build summary shows tiering savings explicitly:
+
+```
+Cost Estimate: $0.34 total
+Savings from model tiering: $0.82  (haiku for 2 tasks saved ~$0.48 vs all-sonnet)
+```
+
+## Related
+
+- [Token Tracking](/docs/guides/token-tracking) - Budget monitoring and session limits
+- [Agent Types](/docs/reference/agent-types) - Default model per agent type
+- [Plan Format](/docs/reference/plan-format) - How to specify model per task in plan files
+- [kova.yaml Reference](/docs/reference/kova-yaml) - Full models section schema

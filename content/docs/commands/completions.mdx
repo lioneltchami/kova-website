@@ -1,0 +1,163 @@
+---
+title: kova completions
+description: Install tab completions for bash, zsh, or fish to speed up Kova command entry
+---
+
+# kova completions
+
+Generate and install shell tab completions for Kova. After installation, pressing `Tab` after `kova` will show available commands, and pressing `Tab` after a flag like `--template` will show valid options.
+
+## Usage
+
+```bash
+kova completions <shell>
+```
+
+## Supported Shells
+
+| Shell  | Command                 |
+| ------ | ----------------------- |
+| `bash` | `kova completions bash` |
+| `zsh`  | `kova completions zsh`  |
+| `fish` | `kova completions fish` |
+
+## Installation
+
+### bash
+
+Append completions to your `.bashrc` and reload:
+
+```bash
+kova completions bash >> ~/.bashrc
+source ~/.bashrc
+```
+
+For system-wide installation (requires sudo):
+
+```bash
+kova completions bash | sudo tee /etc/bash_completion.d/kova
+```
+
+On macOS with Homebrew bash:
+
+```bash
+kova completions bash >> $(brew --prefix)/etc/bash_completion.d/kova
+```
+
+### zsh
+
+Append completions to your `.zshrc` and reload:
+
+```bash
+kova completions zsh >> ~/.zshrc
+source ~/.zshrc
+```
+
+If you use `oh-my-zsh`, install to the fpath instead:
+
+```bash
+kova completions zsh > "${fpath[1]}/_kova"
+```
+
+If you manage completions with a custom fpath directory:
+
+```bash
+kova completions zsh > ~/.zsh/completions/_kova
+# Make sure ~/.zsh/completions is in your fpath
+```
+
+After adding to fpath, rebuild the completion cache:
+
+```bash
+rm -f ~/.zcompdump && compinit
+```
+
+### fish
+
+Fish uses a dedicated completions directory. Install with:
+
+```bash
+kova completions fish > ~/.config/fish/completions/kova.fish
+```
+
+Fish loads completions automatically from this directory. No reload needed.
+
+## What Gets Completed
+
+After installation, Tab completion works for commands, flags, and flag values:
+
+### Commands
+
+```bash
+kova <Tab>
+# build   completions   config   init   plan   pr   run   status   team-build   update
+```
+
+### Flags
+
+```bash
+kova build --<Tab>
+# --dry-run   --live   --model-override   --no-validate   --parallel   --resume   --verbose
+
+kova plan --<Tab>
+# --auto-build   --issue   --model   --no-branch   --output   --template
+
+kova init --<Tab>
+# --dry-run   --force   --merge   --no-detect   --preset
+
+kova config <Tab>
+# add-boundary   add-rule   set
+```
+
+### Flag Values
+
+```bash
+kova plan --template <Tab>
+# bugfix   feature   migration   performance   refactor   security
+
+kova plan --model <Tab>
+# haiku   opus   sonnet
+
+kova build --model-override <Tab>
+# haiku   opus   sonnet
+
+kova init --preset <Tab>
+# django   expo   express   nextjs   node   react
+```
+
+## Verifying Installation
+
+Open a new terminal window and test:
+
+```bash
+kova <Tab><Tab>
+```
+
+You should see the full command list. If nothing appears:
+
+1. Confirm the completions were written: `cat ~/.bashrc | grep kova` (or your shell's rc file)
+2. Restart your terminal or run `source ~/.bashrc` (or equivalent)
+3. On zsh, try running `compinit` to rebuild the completion cache
+
+## Regenerating Completions
+
+After upgrading Kova, regenerate completions to pick up new commands and flags:
+
+```bash
+# bash
+kova completions bash > /tmp/kova_completions && cat /tmp/kova_completions >> ~/.bashrc
+
+# zsh
+kova completions zsh > "${fpath[1]}/_kova" && rm -f ~/.zcompdump && compinit
+
+# fish
+kova completions fish > ~/.config/fish/completions/kova.fish
+```
+
+Or simply run `kova init --merge` in your project after upgrading -- it will refresh the completions script.
+
+## Related
+
+- [Installation](/docs/getting-started/installation) - Install Kova CLI globally
+- [kova init](/docs/commands/init) - Initialize Kova in your project
+- [Quick Start](/docs/getting-started/quickstart) - First build walkthrough

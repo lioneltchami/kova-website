@@ -1,0 +1,32 @@
+
+> kova-website@0.1.0 build C:\PROJ\kova-website
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+
+[MDX] generated files in 22.987100000000055ms
+  Creating an optimized production build ...
+✓ Compiled successfully in 4.8s
+  Running TypeScript ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/31) ...
+  Generating static pages using 15 workers (7/31) 
+  Generating static pages using 15 workers (15/31) 
+  Generating static pages using 15 workers (23/31) 
+✓ Generating static pages using 15 workers (31/31) in 975.3ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ● /docs/[[...slug]]
+│ ├ /docs
+│ ├ /docs/commands/build
+│ ├ /docs/commands/completions
+│ └ [+23 more paths]
+└ ○ /sitemap.xml
+
+
+○  (Static)  prerendered as static content
+●  (SSG)     prerendered as static HTML (uses generateStaticParams)
+

@@ -1,0 +1,43 @@
+---
+title: Kova Documentation
+description: Complete guide to the Kova AI coding orchestration CLI
+---
+
+# Kova Documentation
+
+Welcome to the Kova documentation. Kova is an AI coding orchestration CLI that coordinates 17+ specialist agents to plan, execute, and validate complex multi-file coding tasks.
+
+Unlike tools that use a single agent in a loop, Kova uses specialist agents with dependency-aware execution and independent quality validation.
+
+## Getting Started
+
+- [Installation](/docs/getting-started/installation) - Install Kova CLI globally or use via npx
+- [Quick Start](/docs/getting-started/quickstart) - Your first plan and build in 30 seconds
+- [Configuration](/docs/getting-started/configuration) - Configure kova.yaml for your project
+
+## Commands
+
+| Command            | Purpose                                        |
+| ------------------ | ---------------------------------------------- |
+| `kova init`        | Initialize Kova in your project                |
+| `kova plan`        | Create an implementation plan with task graph  |
+| `kova build`       | Execute plan with hub-and-spoke coordination   |
+| `kova team-build`  | Execute plan with peer-to-peer Agent Teams     |
+| `kova pr`          | Create a GitHub pull request from build output |
+| `kova status`      | Check build progress and task states           |
+| `kova config`      | View and edit configuration                    |
+| `kova update`      | Update Kova templates                          |
+| `kova completions` | Install shell completions                      |
+
+## Guides
+
+- [Plan Templates](/docs/guides/plan-templates) - 6 templates for common task types
+- [Token Tracking](/docs/guides/token-tracking) - Budget system and per-task display
+- [GitHub Integration](/docs/guides/github-integration) - Issues, branches, and PR creation
+- [Model Tiering](/docs/guides/model-tiering) - Automatic haiku/sonnet/opus selection
+
+## Requirements
+
+- Node.js 18 or higher
+- Claude Code CLI installed and authenticated
+- Git repository in your project

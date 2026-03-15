@@ -1,0 +1,167 @@
+---
+title: kova team-build
+description: Execute a plan using contract-first Agent Teams with peer-to-peer coordination between specialists
+---
+
+# kova team-build
+
+Execute a plan using Claude's experimental Agent Teams feature, where agents communicate directly with each other rather than routing through a central orchestrator. `kova team-build` uses a contract-first model: agents define and share interface contracts before implementation begins, preventing the integration drift that happens when agents work in isolation.
+
+## Usage
+
+```bash
+kova team-build [plan-path] [flags]
+```
+
+## Prerequisites
+
+Agent Teams is an experimental Claude Code feature. Enable it by setting the environment variable before running:
+
+```bash
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+kova team-build
+```
+
+Or set it for a single command:
+
+```bash
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 kova team-build
+```
+
+Kova checks for this variable at startup and exits with a clear error if it is missing.
+
+## Flags
+
+| Flag                       | Description                                          | Default |
+| -------------------------- | ---------------------------------------------------- | ------- |
+| `--wave-timeout <seconds>` | Maximum time per coordination wave before timing out | 600     |
+| `--dry-run`                | Show the wave execution plan without running agents  | false   |
+| `--no-validate`            | Skip quality-engineer validation step                | false   |
+| `--verbose`                | Show detailed agent communication logs               | false   |
+
+## Examples
+
+### Basic Team Build
+
+Uses the most recent plan in `.claude/tasks/`:
+
+```bash
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 kova team-build
+```
+
+### Build a Specific Plan
+
+```bash
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 kova team-build .claude/tasks/payment-integration.md
+```
+
+### Preview the Wave Plan
+
+Shows wave structure and contract dependencies without running agents:
+
+```bash
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 kova team-build --dry-run
+```
+
+Output:
+
+```
+Wave plan: payment-integration.md
+
+  Wave 1 (Contract Definition):
+    [backend-engineer]     define-api-contract      (outputs: API spec)
+    [supabase-specialist]  define-schema-contract   (outputs: DB schema)
+
+  Wave 2 (Implementation -- reads Wave 1 contracts):
+    [frontend-specialist]  build-payment-form       (reads: API spec)
+    [backend-engineer]     implement-endpoints      (reads: DB schema)
+
+  Wave 3 (Integration Validation):
+    [quality-engineer]     validate-integration     (reads: all contracts)
+
+Total waves: 3
+Estimated tokens: 185,000 (2.1x vs kova build)
+```
+
+### Set a Wave Timeout
+
+Increase timeout for complex coordination waves:
+
+```bash
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 kova team-build --wave-timeout 900
+```
+
+## How Agent Teams Works
+
+`kova build` uses hub-and-spoke coordination: the orchestrator dispatches each agent sequentially and the orchestrator acts as the sole communication channel. `kova team-build` replaces this with peer-to-peer coordination within each wave.
+
+### Contract-First Execution
+
+Before any implementation begins, agents in Wave 1 produce contracts -- structured documents specifying interfaces:
+
+- **API contract**: endpoint paths, request/response shapes, error codes
+- **Schema contract**: table names, column types, foreign keys, RLS policies
+- **Component contract**: prop types, events, state shape
+
+Wave 2 agents read these contracts and implement against them simultaneously. Because every agent builds to the same agreed interfaces, integration works on the first try.
+
+### Wave-Based Progress Display
+
+```
+Building: payment-integration.md (Agent Teams mode)
+Wave: 2 of 3
+
+  Wave 1 (Contract Definition):
+    [done] define-api-contract      backend-engineer     2m 04s
+           Contract: REST API spec delivered to team
+
+    [done] define-schema-contract   supabase-specialist  1m 38s
+           Contract: DB schema delivered to team
+
+  Wave 2 (Implementation):
+    [done]    build-payment-form    frontend-specialist  sonnet   3m 12s
+    [running] implement-endpoints   backend-engineer     sonnet   started 2m ago
+
+  Wave 3 (Validation):
+    [pending] validate-integration  quality-engineer     sonnet
+
+Team: 2 agents active, 1 contract consumed, 1 pending
+```
+
+### Peer Communication Example
+
+Within a wave, agents can query each other directly without going through the orchestrator:
+
+```
+[frontend-specialist] -> [backend-engineer]: "What's the error response shape for /api/payments?"
+[backend-engineer] -> [frontend-specialist]: "{ error: string, code: string, retry: boolean }"
+[frontend-specialist]: Updating error handler to match...
+```
+
+This eliminates the guesswork that causes integration failures in hub-and-spoke builds.
+
+## kova build vs kova team-build
+
+| Aspect               | kova build                          | kova team-build                                   |
+| -------------------- | ----------------------------------- | ------------------------------------------------- |
+| Coordination model   | Hub-and-spoke (orchestrator routes) | Peer-to-peer (agents communicate directly)        |
+| Token cost           | 1x baseline                         | 2-4x baseline                                     |
+| Contract negotiation | Manual (plan specifies contracts)   | Automatic (agents negotiate in Wave 1)            |
+| Best for             | Independent parallel tasks          | Cross-domain integration                          |
+| Interface drift risk | Higher (agents work in isolation)   | Lower (contracts enforced before build)           |
+| Availability         | Always                              | Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` |
+
+Use `kova build` for most tasks. Use `kova team-build` when changes in one domain depend on real-time coordination with another domain -- for example, building a new API endpoint and its frontend consumer at the same time.
+
+## When to Use kova team-build
+
+- Adding a feature that requires simultaneous frontend + backend + database changes
+- Changing an API contract that multiple consumers depend on
+- Refactoring a data model where the schema, service layer, and UI must all update together
+- Any build where agent A's output becomes agent B's input within the same execution
+
+## Related
+
+- [kova build](/docs/commands/build) - Standard hub-and-spoke execution (lower cost)
+- [kova plan](/docs/commands/plan) - Create the plan before building
+- [Configuration](/docs/getting-started/configuration) - Setting `enable_agent_teams` in `kova.yaml`

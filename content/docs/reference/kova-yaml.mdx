@@ -1,0 +1,354 @@
+---
+title: kova.yaml Reference
+description: Complete field-level schema for all kova.yaml configuration sections
+---
+
+# kova.yaml Reference
+
+`kova.yaml` is the single configuration file for a Kova project. It lives in the project root alongside `package.json`. Every field has a default; you only need to specify fields you want to override.
+
+Generate a `kova.yaml` with detected defaults by running `kova init`. Edit fields manually or with `kova config set <key> <value>`.
+
+## Complete Default Configuration
+
+```yaml
+project:
+  name: ""
+  language: "TypeScript"
+  framework: ""
+  package_manager: "npm"
+
+models:
+  auto: true
+  trivial: "haiku"
+  moderate: "sonnet"
+  complex: "opus"
+  planning: "opus"
+
+quality:
+  test: null
+  lint: null
+  typecheck: null
+  build: null
+  validate_after_each_task: false
+  validate_at_end: true
+
+agents:
+  frontend: "frontend-specialist"
+  backend: "backend-engineer"
+  database: "supabase-specialist"
+  testing: "quality-engineer"
+  security: "security-auditor"
+  performance: "performance-optimizer"
+
+boundaries:
+  never_touch:
+    - "*.lock"
+    - ".env*"
+    - "node_modules/**"
+
+rules: []
+
+execution:
+  default_mode: "build"
+  max_parallel_agents: 4
+  enable_resume: true
+  enable_agent_teams: false
+  task_timeout_seconds: 300
+
+notifications:
+  on_build_complete:
+    discord: null
+    slack: null
+    custom: null
+
+usage_tracking:
+  enabled: true
+  plan: "max5"
+  show_per_task: true
+  show_build_summary: true
+  show_cost_estimate: true
+  warn_at_percent: 80
+  pause_at_percent: 95
+
+plan_validation:
+  required_sections:
+    - "Task Description"
+    - "Objective"
+    - "Relevant Files"
+    - "Step by Step Tasks"
+    - "Acceptance Criteria"
+    - "Team Orchestration"
+  require_dependencies: true
+  require_acceptance_criteria: true
+```
+
+---
+
+## project
+
+Context passed to every agent invocation. The planning agent uses this to understand your stack without reading `package.json` itself.
+
+| Field             | Type   | Default        | Description                                                                                       |
+| ----------------- | ------ | -------------- | ------------------------------------------------------------------------------------------------- |
+| `name`            | string | `""`           | Project name. Auto-detected from `package.json` on `kova init`.                                   |
+| `language`        | string | `"TypeScript"` | Primary language. Used to select code style and agent behavior.                                   |
+| `framework`       | string | `""`           | Framework name (Next.js, Expo, Express, etc.). Used as agent context.                             |
+| `package_manager` | string | `"npm"`        | Package manager. Used to generate install and run commands. Values: `npm`, `yarn`, `pnpm`, `bun`. |
+
+Example:
+
+```yaml
+project:
+  name: "my-saas-app"
+  language: "TypeScript"
+  framework: "Next.js"
+  package_manager: "pnpm"
+```
+
+---
+
+## models
+
+Controls which Claude model is used for each task complexity tier. See [Model Tiering](/docs/guides/model-tiering) for the full selection logic.
+
+| Field      | Type    | Default    | Description                                                                          |
+| ---------- | ------- | ---------- | ------------------------------------------------------------------------------------ |
+| `auto`     | boolean | `true`     | Enable automatic model selection per task. When `false`, all tasks use `moderate`.   |
+| `trivial`  | string  | `"haiku"`  | Model for trivial tasks (single file, config, rename).                               |
+| `moderate` | string  | `"sonnet"` | Model for moderate tasks (2-4 files, standard CRUD, bug fix).                        |
+| `complex`  | string  | `"opus"`   | Model for complex tasks (5+ files, security, architecture, database schema).         |
+| `planning` | string  | `"opus"`   | Model used by `kova plan` to create plans. Planning requires deep codebase analysis. |
+
+Valid model values: `"haiku"`, `"sonnet"`, `"opus"`.
+
+Example (use sonnet for everything, no tiering):
+
+```yaml
+models:
+  auto: false
+  moderate: "sonnet"
+  planning: "opus"
+```
+
+---
+
+## quality
+
+Commands Kova runs to validate task output. These are shell commands that return exit code 0 on success.
+
+| Field                      | Type           | Default | Description                                                                                     |
+| -------------------------- | -------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| `test`                     | string or null | `null`  | Command to run tests. Example: `"npm test"`, `"pnpm vitest run"`.                               |
+| `lint`                     | string or null | `null`  | Command to run linting. Example: `"npm run lint"`, `"biome check ."`.                           |
+| `typecheck`                | string or null | `null`  | Command to typecheck. Example: `"tsc --noEmit"`, `"npm run typecheck"`.                         |
+| `build`                    | string or null | `null`  | Command to build. Example: `"npm run build"`, `"next build"`.                                   |
+| `validate_after_each_task` | boolean        | `false` | Run all quality commands after each task completes. Slows builds but catches regressions early. |
+| `validate_at_end`          | boolean        | `true`  | Run all quality commands after the final task. Recommended.                                     |
+
+Example:
+
+```yaml
+quality:
+  test: "pnpm vitest run"
+  lint: "biome check ."
+  typecheck: "tsc --noEmit"
+  build: null
+  validate_after_each_task: false
+  validate_at_end: true
+```
+
+---
+
+## agents
+
+Maps shorthand domain names to agent type identifiers. These are used when the planning agent selects agents without explicit type specification. See [Agent Types](/docs/reference/agent-types) for all valid agent type names.
+
+| Field         | Type   | Default                   | Description                                                                               |
+| ------------- | ------ | ------------------------- | ----------------------------------------------------------------------------------------- |
+| `frontend`    | string | `"frontend-specialist"`   | Agent for frontend tasks.                                                                 |
+| `backend`     | string | `"backend-engineer"`      | Agent for backend/API tasks.                                                              |
+| `database`    | string | `"supabase-specialist"`   | Agent for database tasks. Change to `"database-administrator"` for non-Supabase projects. |
+| `testing`     | string | `"quality-engineer"`      | Agent for validation and testing tasks.                                                   |
+| `security`    | string | `"security-auditor"`      | Agent for security-critical tasks.                                                        |
+| `performance` | string | `"performance-optimizer"` | Agent for optimization tasks.                                                             |
+
+Example (non-Supabase project):
+
+```yaml
+agents:
+  frontend: "frontend-specialist"
+  backend: "backend-engineer"
+  database: "database-administrator"
+  testing: "quality-engineer"
+  security: "security-auditor"
+  performance: "performance-optimizer"
+```
+
+---
+
+## boundaries
+
+File protection rules. Agents cannot write to files matching these glob patterns. The hook validator enforces boundaries on every file write during a build.
+
+| Field         | Type     | Default                                  | Description                                                              |
+| ------------- | -------- | ---------------------------------------- | ------------------------------------------------------------------------ |
+| `never_touch` | string[] | `["*.lock", ".env*", "node_modules/**"]` | Glob patterns. Any file matching a pattern is off-limits for all agents. |
+
+Patterns use forward slashes on all platforms. Standard glob syntax: `*` matches any character except `/`, `**` matches any path segment, `?` matches one character, `{a,b}` matches either.
+
+Example:
+
+```yaml
+boundaries:
+  never_touch:
+    - "*.lock"
+    - ".env*"
+    - "node_modules/**"
+    - "infrastructure/**"
+    - "terraform/**"
+    - "*.pem"
+    - "secrets/**"
+```
+
+---
+
+## rules
+
+A list of strings added to every agent's context as project-specific instructions. Use rules to encode conventions that agents should follow across all tasks.
+
+Type: `string[]`
+Default: `[]`
+
+Example:
+
+```yaml
+rules:
+  - "Never modify database migration files directly. Create new migrations instead."
+  - "All API endpoints must have error handling with meaningful error messages."
+  - "Use server actions for form submissions, not API routes."
+  - "Prefer Tailwind classes over inline styles."
+  - "Run pnpm typecheck before marking any task complete."
+```
+
+Rules are injected at the top of each agent's system prompt. Keep them concise and action-oriented. Avoid rules that duplicate what the plan already specifies.
+
+---
+
+## execution
+
+Controls how tasks are dispatched and how long agents have to complete them.
+
+| Field                  | Type    | Default   | Description                                                                                   |
+| ---------------------- | ------- | --------- | --------------------------------------------------------------------------------------------- |
+| `default_mode`         | string  | `"build"` | Default execution mode. `"build"` for hub-and-spoke, `"team-build"` for Agent Teams.          |
+| `max_parallel_agents`  | number  | `4`       | Maximum number of agents running simultaneously. Reduce if you hit rate limits.               |
+| `enable_resume`        | boolean | `true`    | When `true`, prompt to resume if a checkpoint exists. When `false`, always start fresh.       |
+| `enable_agent_teams`   | boolean | `false`   | Enable the experimental `team-build` mode. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. |
+| `task_timeout_seconds` | number  | `300`     | Per-task timeout in seconds. Task is marked failed after this duration.                       |
+
+Example:
+
+```yaml
+execution:
+  default_mode: "build"
+  max_parallel_agents: 3
+  enable_resume: true
+  enable_agent_teams: false
+  task_timeout_seconds: 600
+```
+
+---
+
+## notifications
+
+Webhook URLs to notify when builds complete or fail. All fields are optional. See [Webhook Notifications](/docs/guides/webhook-notifications) for setup instructions.
+
+| Field                       | Type           | Default | Description                                |
+| --------------------------- | -------------- | ------- | ------------------------------------------ |
+| `on_build_complete.discord` | string or null | `null`  | Discord webhook URL.                       |
+| `on_build_complete.slack`   | string or null | `null`  | Slack Incoming Webhook URL.                |
+| `on_build_complete.custom`  | string or null | `null`  | Custom endpoint URL. Receives a JSON POST. |
+
+Example:
+
+```yaml
+notifications:
+  on_build_complete:
+    discord: "https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN"
+    slack: "https://hooks.slack.com/services/TEAM_ID/CHANNEL_ID/TOKEN"
+    custom: null
+```
+
+---
+
+## usage_tracking
+
+Controls token usage display and session budget enforcement. See [Token Tracking](/docs/guides/token-tracking) for full documentation.
+
+| Field                | Type    | Default  | Description                                                                                               |
+| -------------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| `enabled`            | boolean | `true`   | Enable token tracking. When `false`, no token data is collected or displayed.                             |
+| `plan`               | string  | `"max5"` | Your Claude plan. Determines the 5-hour window allocation. Values: `"pro"`, `"max5"`, `"max20"`, `"api"`. |
+| `show_per_task`      | boolean | `true`   | Show token count after each completed task.                                                               |
+| `show_build_summary` | boolean | `true`   | Show full token table at the end of the build.                                                            |
+| `show_cost_estimate` | boolean | `true`   | Include estimated cost in output.                                                                         |
+| `warn_at_percent`    | number  | `80`     | Print a warning when this percentage of the window allocation is consumed.                                |
+| `pause_at_percent`   | number  | `95`     | Pause the build and prompt for confirmation at this percentage.                                           |
+
+Window allocations by plan:
+
+| Plan value | Window allocation                 |
+| ---------- | --------------------------------- |
+| `"pro"`    | 44,000 tokens                     |
+| `"max5"`   | 88,000 tokens                     |
+| `"max20"`  | 220,000 tokens                    |
+| `"api"`    | Unlimited (no budget enforcement) |
+
+---
+
+## plan_validation
+
+Controls which sections are required in generated plan files. The hook validator checks these requirements when a plan file is created.
+
+| Field                         | Type     | Default   | Description                                                                 |
+| ----------------------------- | -------- | --------- | --------------------------------------------------------------------------- |
+| `required_sections`           | string[] | See below | Section headings that must appear in every plan.                            |
+| `require_dependencies`        | boolean  | `true`    | Every task must specify a `Depends On` field.                               |
+| `require_acceptance_criteria` | boolean  | `true`    | The plan must have an `Acceptance Criteria` section with at least one item. |
+
+Default required sections:
+
+```yaml
+plan_validation:
+  required_sections:
+    - "Task Description"
+    - "Objective"
+    - "Relevant Files"
+    - "Step by Step Tasks"
+    - "Acceptance Criteria"
+    - "Team Orchestration"
+```
+
+To allow minimal plans without a Relevant Files section or Team Orchestration section:
+
+```yaml
+plan_validation:
+  required_sections:
+    - "Task Description"
+    - "Objective"
+    - "Step by Step Tasks"
+    - "Acceptance Criteria"
+  require_dependencies: true
+  require_acceptance_criteria: true
+```
+
+---
+
+## Related
+
+- [Configuration Guide](/docs/getting-started/configuration) - Walkthrough of common kova.yaml setups
+- [kova config](/docs/commands/config) - Edit config values from the CLI
+- [Model Tiering](/docs/guides/model-tiering) - How the models section controls auto-selection
+- [Token Tracking](/docs/guides/token-tracking) - How usage_tracking affects build output
+- [Webhook Notifications](/docs/guides/webhook-notifications) - Setting up notifications

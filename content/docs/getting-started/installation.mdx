@@ -1,0 +1,120 @@
+---
+title: Installation
+description: Install Kova CLI and get ready to orchestrate AI agents on any project
+---
+
+# Installation
+
+Kova is an npm CLI that coordinates specialized AI agents to plan, execute, and validate complex multi-file coding tasks. Install it in under 60 seconds.
+
+## Prerequisites
+
+Before installing Kova, make sure you have the following installed and ready:
+
+| Requirement         | Minimum Version | Check              |
+| ------------------- | --------------- | ------------------ |
+| **Node.js**         | 18+             | `node --version`   |
+| **Claude Code CLI** | Latest          | `claude --version` |
+| **Git**             | Any             | `git --version`    |
+
+**Claude Code CLI** is required because Kova invokes it as a subprocess to run agents. Install it from [claude.ai/code](https://claude.ai/code) and authenticate with your Anthropic account:
+
+```bash
+claude login
+```
+
+Kova reads your Claude session automatically -- no separate API key configuration needed.
+
+## Install Methods
+
+### Global Install (Recommended)
+
+Install Kova globally so the `kova` command is available everywhere:
+
+```bash
+npm install -g kova-cli
+```
+
+Verify the installation succeeded:
+
+```bash
+kova --version
+```
+
+### Use Without Installing (npx)
+
+Run Kova without a global install using `npx`. Useful for one-off use or CI environments:
+
+```bash
+npx kova-cli init
+npx kova-cli plan "add user authentication"
+npx kova-cli build
+```
+
+### From Source
+
+Clone and build locally for development or to use unreleased changes:
+
+```bash
+git clone https://github.com/klokare/kova-cli
+cd kova-cli
+npm install
+npm run build
+npm link
+```
+
+After `npm link`, the `kova` command resolves to your local build.
+
+## Initialize Your Project
+
+After installing, navigate to your project directory and initialize Kova:
+
+```bash
+cd your-project
+kova init
+```
+
+Kova detects your language, framework, package manager, database, and auth dependencies automatically, then scaffolds the `.claude/` directory and generates a `kova.yaml` config file. The whole process takes under 30 seconds.
+
+## Shell Completions
+
+Enable tab completion for faster command entry. Run the appropriate command for your shell:
+
+```bash
+# Bash
+kova completions bash >> ~/.bashrc && source ~/.bashrc
+
+# Zsh
+kova completions zsh >> ~/.zshrc && source ~/.zshrc
+
+# Fish
+kova completions fish > ~/.config/fish/completions/kova.fish
+```
+
+After sourcing, press `Tab` after `kova ` to see all available commands and flags.
+
+## Verify Authentication
+
+Confirm Kova can reach Claude Code before running your first plan:
+
+```bash
+kova status
+```
+
+If Claude Code is not authenticated, you will see an error prompting you to run `claude login`. Once authenticated, you are ready to go.
+
+## Upgrade
+
+Update Kova to the latest version at any time:
+
+```bash
+npm update -g kova-cli
+```
+
+Kova detects local modifications to `.claude/` template files before overwriting them. See [kova update](/docs/commands/update) for details on the update process.
+
+## Next Steps
+
+- [Quick Start](/docs/getting-started/quickstart) - Create your first plan and build in under 5 minutes
+- [Configuration](/docs/getting-started/configuration) - Customize `kova.yaml` for your project
+- [kova init](/docs/commands/init) - Full reference for the init command and auto-detection logic

@@ -1,0 +1,183 @@
+---
+title: Webhook Notifications
+description: Send build events to Discord, Slack, or custom webhooks with configurable payloads
+---
+
+# Webhook Notifications
+
+Kova can notify external services when builds start, complete, or fail. Notifications are fire-and-forget: a failed delivery is logged and retried but never blocks or crashes the build.
+
+## Configuration
+
+Add webhook URLs to `kova.yaml` under `notifications.on_build_complete`:
+
+```yaml
+notifications:
+  on_build_complete:
+    discord: "https://discord.com/api/webhooks/DISCORD_WEBHOOK_ID/DISCORD_WEBHOOK_TOKEN"
+    slack: "https://hooks.slack.com/services/SLACK_TEAM/SLACK_CHANNEL/SLACK_TOKEN"
+    custom: "https://your-service.com/kova-events"
+```
+
+All three fields are optional. Set only the ones you use; leave the rest as `null` or omit them entirely.
+
+Notifications are currently sent on `build_complete` and `build_fail` events. `build_start` tracking is available in the checkpoint but does not yet dispatch a webhook by default.
+
+## Discord Setup
+
+1. In Discord, open your server and go to channel settings.
+2. Select Integrations, then Webhooks, then New Webhook.
+3. Name the webhook (for example: "Kova Builds"), choose a channel, and copy the webhook URL.
+4. Paste the URL into `kova.yaml`:
+
+```yaml
+notifications:
+  on_build_complete:
+    discord: "https://discord.com/api/webhooks/DISCORD_WEBHOOK_ID/DISCORD_WEBHOOK_TOKEN"
+```
+
+Kova formats Discord messages using Discord's webhook embed format. A completed build looks like:
+
+```
+Kova Build Complete
+
+Plan:      add-user-authentication
+Status:    SUCCESS
+Tasks:     7 / 7 completed
+Duration:  4m 22s
+Tokens:    105,330 used
+Models:    haiku x2, sonnet x4, opus x1
+
+Branch: feat/add-user-authentication
+```
+
+A failed build includes the failing task name and error summary.
+
+## Slack Setup
+
+1. Go to api.slack.com/apps and create a new app from scratch.
+2. Select your workspace.
+3. Under Features, enable Incoming Webhooks.
+4. Click Add New Webhook to Workspace, choose a channel, and copy the webhook URL.
+5. Paste the URL into `kova.yaml`:
+
+```yaml
+notifications:
+  on_build_complete:
+    slack: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+```
+
+Kova formats Slack messages using Slack Block Kit. The message includes the plan name, status, task count, duration, and a link to the branch if GitHub integration is active.
+
+## Custom Webhooks
+
+The `custom` field sends a raw HTTP POST with a JSON payload. Use this for integrations with your own backend, Linear, PagerDuty, or any other service that accepts webhooks.
+
+```yaml
+notifications:
+  on_build_complete:
+    custom: "https://your-api.com/kova-events"
+```
+
+For services that require authentication headers, Kova does not yet support per-webhook headers in `kova.yaml`. Use a lightweight proxy or serverless function to add auth headers before forwarding to the final destination.
+
+## Payload Format
+
+The custom webhook receives a JSON payload matching the `WebhookPayload` type:
+
+```json
+{
+  "event": "build_complete",
+  "plan": "add-user-authentication",
+  "status": "SUCCESS",
+  "tasks_total": 7,
+  "tasks_completed": 7,
+  "tasks_failed": 0,
+  "duration_seconds": 262,
+  "models_used": {
+    "haiku": 2,
+    "sonnet": 4,
+    "opus": 1
+  },
+  "timestamp": "2026-03-14T22:30:00Z"
+}
+```
+
+For a failed build, `status` is `"FAILED"` and `tasks_failed` is greater than zero.
+
+### Payload Field Reference
+
+| Field              | Type   | Description                                      |
+| ------------------ | ------ | ------------------------------------------------ |
+| `event`            | string | `build_start`, `build_complete`, or `build_fail` |
+| `plan`             | string | Plan filename (not full path)                    |
+| `status`           | string | `SUCCESS`, `FAILED`, or `PARTIAL`                |
+| `tasks_total`      | number | Total tasks in the plan                          |
+| `tasks_completed`  | number | Tasks that completed successfully                |
+| `tasks_failed`     | number | Tasks that failed or were skipped due to failure |
+| `duration_seconds` | number | Total build duration in seconds                  |
+| `models_used`      | object | Map of model name to count of tasks that used it |
+| `timestamp`        | string | ISO 8601 timestamp of the event                  |
+
+## Failure Handling
+
+Webhook delivery failures do not affect the build. If a webhook call fails:
+
+1. Kova logs the failure to `.kova/webhook-errors.log` with the timestamp, URL (redacted), and HTTP status code or network error.
+2. Kova retries the delivery up to 3 times with exponential backoff (2s, 4s, 8s delays).
+3. After 3 failures, the error is logged and Kova continues. The build result is not changed.
+
+Check the error log if notifications stop arriving:
+
+```bash
+cat .kova/webhook-errors.log
+```
+
+Example error log entry:
+
+```
+2026-03-14T22:31:05Z  build_complete  discord  HTTP 404 Not Found
+  Cause: Webhook was deleted from Discord. Recreate and update kova.yaml.
+```
+
+## Testing Your Webhook Configuration
+
+Run a dry-run build to confirm the webhook URL is reachable without executing any agents:
+
+```bash
+kova build --dry-run
+# Output: "Webhook test: discord -> 200 OK"
+# Output: "Webhook test: slack   -> 200 OK"
+```
+
+Or send a manual test payload using curl to confirm your endpoint is receiving data:
+
+```bash
+curl -X POST https://your-api.com/kova-events \
+  -H "Content-Type: application/json" \
+  -d '{"event":"build_complete","plan":"test","status":"SUCCESS","tasks_total":1,"tasks_completed":1,"tasks_failed":0,"duration_seconds":5,"models_used":{"sonnet":1},"timestamp":"2026-03-14T22:00:00Z"}'
+```
+
+## Disabling Notifications
+
+Set all webhook fields to `null` or remove the `notifications` section from `kova.yaml`:
+
+```yaml
+notifications:
+  on_build_complete:
+    discord: null
+    slack: null
+    custom: null
+```
+
+Or pass `--no-notify` at build time to skip webhook delivery for one build without changing config:
+
+```bash
+kova build --no-notify
+```
+
+## Related
+
+- [kova.yaml Reference](/docs/reference/kova-yaml) - Full configuration schema including notifications
+- [Token Tracking](/docs/guides/token-tracking) - Budget warning events
+- [kova build](/docs/commands/build) - Build command with --no-notify flag

@@ -1,0 +1,139 @@
+---
+title: Agent Types
+description: Complete reference for all specialist agent types — specialty, default model, and when to use each
+---
+
+# Agent Types
+
+Kova routes tasks to specialist agents based on the domain of work. Each agent type carries a system prompt optimized for its specialty, a default model assignment, and context about the project stack.
+
+The planning agent selects agent types automatically. You can also specify them explicitly in plan files.
+
+## Core Specialists
+
+These 8 agents cover the domains needed by most projects:
+
+| Agent type              | Specialty                                                       | Default model | When to use                                                                              |
+| ----------------------- | --------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------- |
+| `frontend-specialist`   | React, Vue, React Native, UI components, CSS, animations        | sonnet        | Screens, components, styling, user interactions, responsive layouts                      |
+| `backend-engineer`      | Node.js, APIs, business logic, middleware, server-side logic    | sonnet        | Service functions, API routes, controllers, middleware, webhook handlers                 |
+| `supabase-specialist`   | PostgreSQL, migrations, RLS policies, Edge Functions, real-time | opus          | Database schema, migrations, queries, RLS rules, Supabase edge functions                 |
+| `quality-engineer`      | Testing, validation, code review, acceptance criteria           | sonnet        | Validating completed tasks against acceptance criteria, writing tests, regression checks |
+| `security-auditor`      | Auth, encryption, OWASP vulnerabilities, RLS, secrets           | opus          | Authentication code, authorization rules, security audits, vulnerability remediation     |
+| `performance-optimizer` | Query optimization, caching, bundle analysis, profiling         | opus          | Slow endpoints, high DB query times, large bundles, Core Web Vitals                      |
+| `debugger-detective`    | Root cause analysis, error tracing, reproduction                | sonnet        | Bug investigation, production incidents, intermittent failures                           |
+| `code-simplifier`       | Refactoring, clean code, DRY, module extraction                 | sonnet        | Code cleanup, extracting shared logic, reducing duplication, splitting large files       |
+
+## Extended Specialists
+
+Additional specialists for specific domains:
+
+| Agent type               | Specialty                                                         | Default model | When to use                                                                                     |
+| ------------------------ | ----------------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------- |
+| `mobile-developer`       | React Native, Expo, iOS/Android APIs, native modules              | sonnet        | Mobile-specific components, device APIs, Expo configuration, app store preparation              |
+| `devops-engineer`        | CI/CD, Docker, Kubernetes, deployment pipelines                   | sonnet        | Infrastructure as code, GitHub Actions, deployment scripts, container configuration             |
+| `data-engineer`          | ETL pipelines, data transformation, analytics queries             | sonnet        | Data ingestion, transformation logic, analytics endpoints                                       |
+| `ml-engineer`            | ML model integration, inference, training pipelines               | opus          | Embedding models, fine-tuning, inference APIs, ML pipeline configuration                        |
+| `api-designer`           | REST, GraphQL, OpenAPI specification, API contracts               | sonnet        | API design, endpoint structure, OpenAPI documentation, versioning strategy                      |
+| `test-writer`            | Unit tests, integration tests, E2E tests, test coverage           | sonnet        | Writing or expanding test suites, test strategy, coverage improvements                          |
+| `doc-writer`             | Technical documentation, README, guides, API docs                 | haiku         | Documentation tasks (uses haiku -- much cheaper for text-only work)                             |
+| `architect`              | System design, ADRs, technical decisions, architecture            | opus          | Cross-system decisions, architectural tradeoffs, decisions affecting multiple domains           |
+| `database-administrator` | Query optimization, indexing, replication, non-Supabase databases | opus          | PostgreSQL/MySQL/Mongo without Supabase, query plan analysis, index design                      |
+| `master-orchestrator`    | Codebase exploration, dependency mapping, plan coordination       | opus          | Used internally by `kova plan` -- rarely assigned to individual tasks                           |
+| `deep-researcher`        | Technical research, library evaluation, documentation synthesis   | sonnet        | Investigating unfamiliar APIs, evaluating library options, research-heavy tasks                 |
+| `general-purpose`        | All domains, fallback                                             | sonnet        | Tasks spanning multiple domains, configuration, documentation, tasks without a clear specialist |
+
+## Agent Specialization Notes
+
+### supabase-specialist vs database-administrator
+
+Use `supabase-specialist` for projects using Supabase. This agent knows the Supabase client API, Row Level Security patterns, Edge Functions, and the Supabase migration format.
+
+Use `database-administrator` for projects using PostgreSQL, MySQL, MongoDB, or other databases directly (without Supabase). This agent focuses on SQL query optimization, index design, and database-level configuration.
+
+### security-auditor vs backend-engineer
+
+For authentication routes, authorization checks, RLS policies, or any code handling sensitive data, use `security-auditor` rather than `backend-engineer`. The security-auditor defaults to `opus` and carries context about OWASP Top 10, common authentication vulnerabilities, and safe cryptographic practices. A backend engineer completing an auth task is less reliable than a security auditor on the same task.
+
+### quality-engineer as validator
+
+The `quality-engineer` is primarily used as the final validation step in a plan. Its job is to verify the output of other agents against the plan's acceptance criteria. It reads completed files, runs quality commands (lint, test, typecheck), and reports pass/fail.
+
+The quality-engineer should not implement features. If the quality check fails, the build fails rather than having the quality-engineer attempt a fix. Fixes go back to the appropriate domain specialist.
+
+### doc-writer for cost efficiency
+
+The `doc-writer` uses `haiku` by default. Documentation tasks are text-heavy and do not require the reasoning depth of sonnet or opus. Assigning documentation tasks to `doc-writer` instead of `general-purpose` or `backend-engineer` saves significant tokens at no quality cost.
+
+### architect for cross-cutting decisions
+
+Use `architect` when a decision affects multiple systems or domains. For example, deciding whether to use server-side rendering vs. static generation vs. edge functions is an architectural decision. The architect agent uses `opus` and is instructed to document decisions as Architecture Decision Records (ADRs).
+
+## Specifying Agents in Plan Files
+
+Assign agents explicitly in any task definition:
+
+```markdown
+### 2. Create auth schema
+
+- **Task ID**: setup-auth-schema
+- **Agent**: supabase-specialist
+- **Model**: opus
+- **Depends On**: none
+- Create profiles table with role column (free, admin, partner)
+- Add RLS policies restricting profile access to the authenticated user
+- Create index on profiles(email) for login lookups
+```
+
+Valid values for the `Agent` field are any agent type name from this page, in kebab-case.
+
+## Default Model Override
+
+The default model for any agent can be overridden three ways, in priority order:
+
+1. **Plan file**: `Model: haiku` in the task definition (highest priority)
+2. **Build flag**: `kova build --model-override sonnet` (overrides all tasks)
+3. **kova.yaml**: `models.trivial`, `models.moderate`, `models.complex` (baseline)
+
+## Adding Custom Agent Types
+
+Custom agents can be created by adding skill files to `.claude/skills/`. Create a markdown file with the agent's domain expertise and system prompt:
+
+```markdown
+# .claude/skills/stripe-specialist.md
+
+You are a Stripe payment integration specialist with deep expertise in:
+
+- PaymentIntent and SetupIntent flows
+- Subscription management and billing cycles
+- Webhook event handling and idempotency
+- Connect platform accounts
+- Stripe Elements and embedded UI components
+
+When implementing payment features:
+
+1. Always handle webhook events idempotently
+2. Store Stripe IDs in your database for all created objects
+3. Use Stripe's test mode for all development work
+   ...
+```
+
+Reference custom agent types in plan files by their filename without extension:
+
+```markdown
+- **Agent**: stripe-specialist
+```
+
+Custom agents can also be added to the `agents` mapping in `kova.yaml`:
+
+```yaml
+agents:
+  payments: "stripe-specialist"
+```
+
+## Related
+
+- [Plan Format](/docs/reference/plan-format) - How to assign agents to tasks in plan files
+- [Model Tiering](/docs/guides/model-tiering) - How default models are selected and overridden
+- [kova.yaml Reference](/docs/reference/kova-yaml) - agents section configuration
+- [Plan Templates](/docs/guides/plan-templates) - Which agents each template assigns by default

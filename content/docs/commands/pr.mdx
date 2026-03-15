@@ -1,0 +1,149 @@
+---
+title: kova pr
+description: Create a GitHub pull request from your build output with an auto-generated title and body
+---
+
+# kova pr
+
+Create a GitHub pull request after a successful build. Kova reads the build checkpoint and plan file to generate a descriptive PR title and body, then creates the PR via the GitHub CLI (`gh`). The generated body includes a summary, changed files, completed tasks, and build timing.
+
+## Usage
+
+```bash
+kova pr [flags]
+```
+
+## Flags
+
+| Flag              | Description                          | Default                            |
+| ----------------- | ------------------------------------ | ---------------------------------- |
+| `--title <text>`  | Override the auto-generated PR title | Auto-generated from plan objective |
+| `--body <text>`   | Override the auto-generated PR body  | Auto-generated from checkpoint     |
+| `--draft`         | Create as a draft pull request       | false                              |
+| `--base <branch>` | Target branch for the PR             | `main`                             |
+
+## Examples
+
+### Create PR with Generated Content
+
+```bash
+kova pr
+```
+
+Output:
+
+```
+Reading checkpoint: add-user-auth.md
+Reading plan: .claude/tasks/add-user-auth.md
+
+Creating PR...
+  Title: feat: add user authentication with role-based access
+  Branch: feat/add-user-auth -> main
+  Tasks: 7/7 completed
+  Build time: 9m 5s
+
+PR #42 created: https://github.com/org/repo/pull/42
+```
+
+### Create a Draft PR
+
+Use drafts when the build passed but you want to do manual testing before requesting review:
+
+```bash
+kova pr --draft
+```
+
+### Override the Title
+
+```bash
+kova pr --title "feat(auth): add email/password login and role-based access control"
+```
+
+### Override the Body
+
+Provide a custom body while keeping the auto-generated title:
+
+```bash
+kova pr --body "$(cat my-pr-description.md)"
+```
+
+### Target a Different Base Branch
+
+```bash
+kova pr --base develop
+kova pr --base staging
+```
+
+## Generated PR Title
+
+Kova generates the PR title from the plan's objective field, prefixed with a conventional commit type:
+
+| Plan objective starts with  | Prefix used |
+| --------------------------- | ----------- |
+| "add", "implement", "build" | `feat:`     |
+| "fix", "resolve", "patch"   | `fix:`      |
+| "refactor", "restructure"   | `refactor:` |
+| "update", "upgrade"         | `chore:`    |
+| "remove", "delete"          | `chore:`    |
+| "test", "add tests"         | `test:`     |
+
+## Generated PR Body
+
+Kova generates a structured PR body from the build output:
+
+```markdown
+## Summary
+
+Adds user authentication with email/password login, signup with validation,
+account lockout after 3 failed attempts, and role-based access for admin routes.
+
+## Changes
+
+- `src/api/auth.ts` - Authentication API endpoints
+- `src/components/Login.tsx` - Login form component
+- `src/components/Signup.tsx` - Signup form component
+- `supabase/migrations/003_auth.sql` - Auth schema and RLS policies
+
+## Tasks Completed
+
+- [x] create-auth-schema (supabase-specialist, opus, 47s)
+- [x] build-auth-api (backend-engineer, sonnet, 2m 18s)
+- [x] build-login-form (frontend-specialist, sonnet, 1m 55s)
+- [x] build-signup-form (frontend-specialist, sonnet, 1m 30s)
+- [x] add-account-lockout (backend-engineer, sonnet, 58s)
+- [x] add-role-guards (backend-engineer, haiku, 22s)
+- [x] quality-validation (quality-engineer, sonnet, 3m 10s)
+
+## Build Details
+
+- Total time: 9m 5s
+- Total tokens: 83,600
+- Quality validation: passed
+- All acceptance criteria met
+```
+
+## Prerequisites
+
+Before running `kova pr`:
+
+1. **GitHub CLI installed**: `brew install gh` or see [cli.github.com](https://cli.github.com)
+2. **GitHub CLI authenticated**: `gh auth login`
+3. **Build completed successfully**: `kova build` or `kova run` must have passed
+4. **Branch pushed to remote**: Kova will push automatically if the branch has no upstream
+
+If the branch has not been pushed, Kova runs `git push -u origin <branch>` before creating the PR.
+
+## How It Works
+
+1. Reads the most recent `.progress.json` checkpoint to confirm build passed
+2. Reads the plan markdown file to extract the objective and task list
+3. Generates a PR title using conventional commit format
+4. Generates a PR body with summary, file changes, task list, and build stats
+5. Checks if the current branch has a remote tracking branch; pushes if not
+6. Invokes `gh pr create` with the generated title and body
+
+## Related
+
+- [kova build](/docs/commands/build) - Execute the plan before creating a PR
+- [kova status](/docs/commands/status) - Verify build passed before creating PR
+- [Installation](/docs/getting-started/installation) - GitHub CLI setup

@@ -1,0 +1,157 @@
+---
+title: kova update
+description: Update Kova skill files, plan templates, and agent definitions to the latest version
+---
+
+# kova update
+
+Update Kova's built-in files to the latest version: agent skill definitions, plan templates, hook validators, and default agent rules. Kova detects whether you have locally modified any of these files before overwriting them.
+
+## Usage
+
+```bash
+kova update [flags]
+```
+
+## Flags
+
+| Flag               | Description                                              | Default |
+| ------------------ | -------------------------------------------------------- | ------- |
+| `--force`          | Overwrite all local modifications without prompting      | false   |
+| `--dry-run`        | Show what would be updated without applying any changes  | false   |
+| `--templates-only` | Update only plan templates in `.claude/tasks/templates/` | false   |
+| `--skills-only`    | Update only agent skill definitions in `.claude/skills/` | false   |
+
+## Examples
+
+### Update All Files
+
+```bash
+kova update
+```
+
+### Preview Available Updates
+
+Shows what has changed without applying anything:
+
+```bash
+kova update --dry-run
+```
+
+Output:
+
+```
+Checking for updates...
+
+Updates available:
+  .claude/skills/frontend-specialist/SKILL.md
+    Current: v2.1 (installed 2026-02-10)
+    Latest:  v2.4
+    Changes: Added React 19 compiler patterns, updated hook rules
+
+  .claude/skills/backend-engineer/SKILL.md
+    Current: v2.0 (installed 2026-02-10)
+    Latest:  v2.2
+    Changes: Added Bun runtime support, Edge Function patterns
+
+  .claude/commands/team-plan.md
+    Current: v1.2 (installed 2026-02-10)
+    Latest:  v1.5
+    Changes: Improved acceptance criteria section, added rollback planning
+
+  templates/feature.md
+    Current: v1.3 (installed 2026-02-10)
+    Latest:  v1.5
+    Changes: Added estimated token count field per task
+
+3 skill files, 1 template -- run without --dry-run to apply.
+```
+
+### Update Skills Only
+
+```bash
+kova update --skills-only
+```
+
+### Update Templates Only
+
+```bash
+kova update --templates-only
+```
+
+### Force Overwrite Local Changes
+
+Skips the modification prompt and overwrites all files unconditionally:
+
+```bash
+kova update --force
+```
+
+Use with caution. Run `--dry-run` first to understand what will be overwritten.
+
+## Local Modification Detection
+
+By default, `kova update` compares each file's current content against the SHA-256 hash of the version that was installed. If the hashes differ, Kova treats the file as locally modified and prompts before overwriting:
+
+```
+Local modifications detected:
+
+  .claude/skills/frontend-specialist/SKILL.md
+    Modified 3 days ago (you added React Server Component patterns)
+
+  Overwrite with v2.4? [y/N/d]
+    y = overwrite    N = skip    d = show diff
+```
+
+Choose `d` to see a unified diff between your local version and the upstream version before deciding.
+
+Files you have not modified are updated silently.
+
+## What Gets Updated
+
+`kova update` can update the following categories of files:
+
+| Category                | Location                          | What Changes                            |
+| ----------------------- | --------------------------------- | --------------------------------------- |
+| Agent skill definitions | `.claude/skills/*/SKILL.md`       | New patterns, updated best practices    |
+| Plan templates          | `.claude/tasks/templates/*.md`    | Improved section structure              |
+| Command definitions     | `.claude/commands/*.md`           | Updated execution instructions          |
+| Hook validators         | `.claude/hooks/**/*.mjs`          | Bug fixes, new validation rules         |
+| Agent rules             | `.claude/agents/agent-rules.json` | New agent types, updated model defaults |
+
+Your `kova.yaml` is never modified by `kova update`. Project-specific rules added via `kova config add-rule` are never overwritten.
+
+## What Never Gets Overwritten
+
+- `kova.yaml` -- your project configuration
+- `CLAUDE.md` -- your project instructions
+- `.claude/tasks/*.md` -- plan files you have created
+- `.claude/tasks/*.progress.json` -- checkpoint files
+- Any file in `boundaries.never_touch`
+
+## Version Tracking
+
+Kova tracks which version of each template file is installed by storing metadata in `.claude/.kova-versions.json`:
+
+```json
+{
+  "skills/frontend-specialist/SKILL.md": {
+    "version": "2.1",
+    "installed_at": "2026-02-10T09:00:00Z",
+    "sha256": "a3f4b2c1..."
+  },
+  "skills/backend-engineer/SKILL.md": {
+    "version": "2.0",
+    "installed_at": "2026-02-10T09:00:00Z",
+    "sha256": "d7e6f5a4..."
+  }
+}
+```
+
+This file is managed by Kova automatically. Do not edit it manually.
+
+## Related
+
+- [kova init](/docs/commands/init) - Reinstall all files from scratch using `--force`
+- [kova config](/docs/commands/config) - Edit configuration without touching skill files
+- [Installation](/docs/getting-started/installation) - Update the Kova CLI itself with `npm update -g kova-cli`

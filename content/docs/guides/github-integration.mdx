@@ -1,0 +1,246 @@
+---
+title: GitHub Integration
+description: Complete workflow from GitHub issue to merged pull request using --issue, auto-branching, and kova pr
+---
+
+# GitHub Integration
+
+Kova integrates with GitHub at three points in the development workflow: fetching issue context before planning, creating a feature branch automatically, and generating a pull request after a successful build. Together these create a loop where the entire workflow from issue to PR is a single session.
+
+## Prerequisites
+
+GitHub integration requires the GitHub CLI. Install it from [cli.github.com](https://cli.github.com) and authenticate:
+
+```bash
+gh auth login
+gh auth status   # confirm authentication works
+gh repo view     # confirm the current directory is a GitHub repo
+```
+
+Kova calls `gh` as a subprocess. All GitHub operations inherit your `gh` authentication.
+
+## The Full Viral Loop
+
+The most powerful workflow chains all three GitHub features:
+
+```bash
+# 1. Fetch the issue, create a plan grounded in its requirements
+kova plan --issue 42
+
+# 2. Review the plan in .claude/tasks/, then execute
+kova build
+
+# 3. Create a PR linked to the issue
+kova pr
+```
+
+Or collapse the plan and build into one step with `kova run`:
+
+```bash
+kova run --issue 42 "fix the password reset bug"
+kova pr
+```
+
+The PR body will include `Closes #42`, which automatically closes the issue on merge in GitHub.
+
+## Fetching Issue Context with --issue
+
+The `--issue` flag fetches a GitHub issue by number and injects its title, body, and comments into the planning context. The planning agent (running on `opus` by default) reads the issue before generating a plan.
+
+```bash
+kova plan --issue 42
+kova plan --issue 42 "focus only on the mobile UI part"
+```
+
+When `--issue` is used without an additional prompt, the issue description becomes the full prompt. When used with a prompt, the issue provides context and the prompt narrows the scope.
+
+Output during planning:
+
+```
+Fetching GitHub issue #42...
+  Title:    Users cannot reset password if email contains plus sign
+  Labels:   bug, authentication
+  Comments: 3 (fetching...)
+
+Planning with issue context...
+  Plan created: .claude/tasks/fix-password-reset-plus-sign.md
+```
+
+The fetched issue data includes:
+
+- Issue title (becomes the plan name slug)
+- Issue body (full description, reproduction steps, expected behavior)
+- All comments (often contain additional reproduction details or attempted fixes)
+- Labels (used as a signal for template selection: `bug` suggests bugfix template, etc.)
+- Assignees and milestone (included as context, not acted on)
+
+### Combining --issue with --template
+
+Issue labels are used as hints, but you can be explicit:
+
+```bash
+kova plan --issue 42 --template bugfix
+kova plan --issue 99 --template security "focus on the auth bypass described in the comments"
+```
+
+## Auto Branch Creation
+
+After `kova plan` creates a plan, Kova automatically creates a feature branch named after the plan. Branch creation happens before `kova build` starts, so all agent commits land on the correct branch.
+
+Branch naming rules:
+
+| Condition                               | Branch name format     |
+| --------------------------------------- | ---------------------- |
+| `--issue 42`, issue labeled `bug`       | `fix/issue-42-<slug>`  |
+| `--issue 42`, issue labeled `feature`   | `feat/issue-42-<slug>` |
+| `--issue 42`, no label                  | `feat/issue-42-<slug>` |
+| No issue flag, prompt starts with "fix" | `fix/<plan-slug>`      |
+| No issue flag, all other prompts        | `feat/<plan-slug>`     |
+| `--branch <name>`                       | Exact name provided    |
+
+Examples:
+
+```bash
+kova plan --issue 42
+# Branch: fix/issue-42-password-reset-plus-sign
+
+kova plan "add dark mode toggle"
+# Branch: feat/add-dark-mode-toggle
+
+kova plan --branch hotfix/stripe-webhook "fix webhook signature"
+# Branch: hotfix/stripe-webhook
+```
+
+Skip branch creation entirely with `--no-branch`:
+
+```bash
+kova plan --no-branch "add logging to the API layer"
+```
+
+## Creating Pull Requests with kova pr
+
+After a successful build, `kova pr` creates a GitHub pull request against the default branch (typically `main`).
+
+```bash
+kova pr
+```
+
+Kova reads the plan file and checkpoint to generate the PR automatically:
+
+```
+Creating PR from branch: fix/issue-42-password-reset-plus-sign
+
+  Title:  Fix password reset for emails containing plus signs
+  Base:   main
+  Body:   Generated from plan (5 tasks, 3 agents, all passed)
+
+PR #87 created: https://github.com/org/repo/pull/87
+```
+
+### Generated PR Body
+
+The generated PR body includes:
+
+```markdown
+## Summary
+
+Fixes a bug where password reset emails were not sent when the user's email
+address contained a plus sign (+). The issue was in the email normalization
+function which was incorrectly treating plus as an encoding character.
+
+Closes #42
+
+## Changes
+
+- `lib/services/auth.ts` — fix email normalization in sendPasswordReset
+- `lib/services/auth.test.ts` — add regression test for plus-sign emails
+
+## Build Details
+
+- Plan: fix-password-reset-plus-sign.md
+- Tasks: 5/5 completed
+- Agents: debugger-detective, backend-engineer, quality-engineer
+- Duration: 3m 12s
+- Tokens: 48,200
+```
+
+### Custom PR Options
+
+Override any generated field:
+
+```bash
+kova pr --title "Fix: password reset for emails with plus signs"
+kova pr --base develop        # PR against develop instead of main
+kova pr --draft               # open as draft PR
+kova pr --no-body             # create PR with empty body (fill manually)
+```
+
+Add reviewers and labels:
+
+```bash
+kova pr --reviewer alice --reviewer bob
+kova pr --label bug --label "needs-review"
+```
+
+## Using GITHUB_TOKEN in CI
+
+In CI/CD environments where `gh` cannot be authenticated interactively, set `GITHUB_TOKEN`:
+
+```bash
+# GitHub Actions
+- name: Create PR
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  run: kova pr
+```
+
+The `GITHUB_TOKEN` environment variable is automatically picked up by `gh`. No additional configuration is needed.
+
+## Workflow Examples
+
+### Solo developer shipping a feature
+
+```bash
+# Monday morning: pick up an issue
+kova plan --issue 112 --template feature
+
+# Read the generated plan, make any edits
+code .claude/tasks/add-team-invites.md
+
+# Execute
+kova build
+
+# Open a PR
+kova pr --draft   # draft until ready for review
+```
+
+### Hotfix from production alert
+
+```bash
+# Fix immediately, no template needed
+kova run --issue 201 "fix the race condition in the order processor"
+
+# Open PR and assign directly
+kova pr --reviewer oncall-lead --label "hotfix" --base main
+```
+
+### Working without GitHub issues
+
+You do not need GitHub issues to use auto-branching or `kova pr`. Both work with any plan:
+
+```bash
+kova plan "refactor the notification service"
+# Branch: feat/refactor-the-notification-service
+
+kova build
+
+kova pr
+# PR title and body generated from plan content
+```
+
+## Related
+
+- [kova plan](/docs/commands/plan) - Plan creation with --issue and --branch flags
+- [kova run](/docs/commands/run) - Combined plan + build in one command
+- [kova pr](/docs/commands/pr) - Pull request command reference
+- [kova build](/docs/commands/build) - Execute the plan
