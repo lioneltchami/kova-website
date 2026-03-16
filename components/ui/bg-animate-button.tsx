@@ -12,12 +12,15 @@ interface BgAnimateButtonProps {
 
 const variants = {
   primary:
-    "bg-gradient-to-r from-[#4361EE] via-[#7B8FFF] to-[#4361EE] bg-[length:200%_100%] animate-[bg-shift_3s_ease_infinite] text-white",
+    "bg-gradient-to-r from-kova-blue via-kova-blue-light to-kova-blue bg-[length:200%_100%] animate-[bg-shift_3s_ease_infinite] text-white",
   secondary:
-    "bg-gradient-to-r from-[#1A1A2E] via-[#2a2a4e] to-[#1A1A2E] bg-[length:200%_100%] animate-[bg-shift_3s_ease_infinite] text-[#C0C0C8] border border-[#4361EE]/40",
+    "bg-gradient-to-r from-kova-charcoal via-[#2a2a4e] to-kova-charcoal bg-[length:200%_100%] animate-[bg-shift_3s_ease_infinite] text-kova-silver border border-kova-blue/40",
   ghost:
-    "bg-gradient-to-r from-transparent via-[#4361EE]/10 to-transparent bg-[length:200%_100%] animate-[bg-shift_3s_ease_infinite] text-[#C0C0C8] border border-white/10",
+    "bg-gradient-to-r from-transparent via-kova-blue/10 to-transparent bg-[length:200%_100%] animate-[bg-shift_3s_ease_infinite] text-kova-silver border border-kova-border",
 };
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal";
 
 export function BgAnimateButton({
   children,
@@ -29,6 +32,7 @@ export function BgAnimateButton({
   const classes = cn(
     "inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all",
     "hover:scale-105 active:scale-95",
+    focusRing,
     variants[variant],
     className,
   );

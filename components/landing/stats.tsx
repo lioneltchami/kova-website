@@ -3,8 +3,8 @@
 import { AnimatedNumber } from "@/components/ui/animated-number";
 
 const stats = [
-  { value: 415, suffix: "+", label: "Tests Passing" },
-  { value: 11, suffix: "", label: "Commands Available" },
+  { value: 459, suffix: "+", label: "Tests Passing" },
+  { value: 14, suffix: "", label: "Commands Available" },
   { value: 6, suffix: "", label: "Plan Templates" },
 ];
 

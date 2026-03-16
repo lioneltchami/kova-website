@@ -1,5 +1,5 @@
-import { TextAnimate } from "@/components/ui/text-animate";
 import { Check, Minus, X } from "lucide-react";
+import { TextAnimate } from "@/components/ui/text-animate";
 
 const rows = [
   {
@@ -70,7 +70,7 @@ const rows = [
 function CellValue({ value, isKova }: { value: string; isKova?: boolean }) {
   if (isKova) {
     return (
-      <span className="inline-flex items-center gap-1.5 font-medium text-[#4361EE]">
+      <span className="inline-flex items-center gap-1.5 font-medium text-kova-blue">
         <Check size={14} className="shrink-0" />
         {value}
       </span>
@@ -79,7 +79,7 @@ function CellValue({ value, isKova }: { value: string; isKova?: boolean }) {
 
   if (value === "No" || value === "N/A") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[#C0C0C8]/40">
+      <span className="inline-flex items-center gap-1.5 text-kova-silver-dim/60">
         <X size={14} className="shrink-0" />
         {value}
       </span>
@@ -93,14 +93,14 @@ function CellValue({ value, isKova }: { value: string; isKova?: boolean }) {
     value === "Git"
   ) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[#C0C0C8]/60">
+      <span className="inline-flex items-center gap-1.5 text-kova-silver-dim">
         <Minus size={14} className="shrink-0" />
         {value}
       </span>
     );
   }
 
-  return <span className="text-[#C0C0C8]/60">{value}</span>;
+  return <span className="text-kova-silver-dim">{value}</span>;
 }
 
 export function Comparison() {
@@ -111,29 +111,29 @@ export function Comparison() {
           <h2 className="mb-4 text-3xl font-bold text-white sm:text-4xl">
             <TextAnimate animation="slideUp">How Kova Compares</TextAnimate>
           </h2>
-          <p className="mx-auto max-w-xl text-[#C0C0C8]">
+          <p className="mx-auto max-w-xl text-kova-silver">
             Most AI coding tools react. Kova plans, executes, and validates --
             then ships.
           </p>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-white/10">
+        <div className="overflow-x-auto rounded-2xl border border-kova-border">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-white/10 bg-[#1A1A2E]">
-                <th className="px-6 py-4 text-left text-[#C0C0C8]/60 font-medium">
+              <tr className="border-b border-kova-border bg-kova-charcoal">
+                <th className="px-6 py-4 text-left text-kova-silver-dim font-medium">
                   Feature
                 </th>
-                <th className="px-6 py-4 text-center font-semibold text-[#4361EE]">
+                <th className="px-6 py-4 text-center font-semibold text-kova-blue">
                   Kova
                 </th>
-                <th className="px-6 py-4 text-center text-[#C0C0C8]/50 font-medium">
+                <th className="px-6 py-4 text-center text-kova-silver-dim font-medium">
                   Ralphy
                 </th>
-                <th className="px-6 py-4 text-center text-[#C0C0C8]/50 font-medium">
+                <th className="px-6 py-4 text-center text-kova-silver-dim font-medium">
                   Aider
                 </th>
-                <th className="px-6 py-4 text-center text-[#C0C0C8]/50 font-medium">
+                <th className="px-6 py-4 text-center text-kova-silver-dim font-medium">
                   Cursor
                 </th>
               </tr>
@@ -142,11 +142,11 @@ export function Comparison() {
               {rows.map((row, i) => (
                 <tr
                   key={row.feature}
-                  className={`border-b border-white/5 transition-colors hover:bg-white/[0.02] ${
-                    i % 2 === 0 ? "bg-[#0d0d0d]" : "bg-[#1A1A2E]/30"
+                  className={`border-b border-kova-border/50 transition-colors hover:bg-white/[0.02] ${
+                    i % 2 === 0 ? "bg-kova-surface" : "bg-kova-charcoal/30"
                   }`}
                 >
-                  <td className="px-6 py-4 text-[#C0C0C8] font-medium">
+                  <td className="px-6 py-4 text-kova-silver font-medium">
                     {row.feature}
                   </td>
                   <td className="px-6 py-4 text-center">
