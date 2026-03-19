@@ -1,11 +1,11 @@
 ---
 title: kova config
-description: View and edit kova.yaml configuration from the command line using dot-notation key paths
+description: View and edit Kova configuration using dot-notation key paths
 ---
 
 # kova config
 
-View and edit your `kova.yaml` configuration without opening the file manually. Supports reading the full config, setting individual values by dot-notation key path, and adding project rules or file protection boundaries.
+View and edit your Kova configuration without opening the file manually. Supports reading the full config, setting individual values by dot-notation key path, and managing API keys.
 
 ## Usage
 
@@ -17,12 +17,11 @@ Running `kova config` without a subcommand displays the current configuration.
 
 ## Subcommands
 
-| Subcommand                           | Description                                     |
-| ------------------------------------ | ----------------------------------------------- |
-| `kova config`                        | Display current configuration as YAML           |
-| `kova config set <key> <value>`      | Set a configuration value by dot-notation key   |
-| `kova config add-rule <text>`        | Add a plain-text rule injected into every agent |
-| `kova config add-boundary <pattern>` | Add a glob pattern to `boundaries.never_touch`  |
+| Subcommand                      | Description                                   |
+| ------------------------------- | --------------------------------------------- |
+| `kova config`                   | Display current configuration as YAML         |
+| `kova config set <key> <value>` | Set a configuration value by dot-notation key |
+| `kova config get <key>`         | Print the value of a single key               |
 
 ## Examples
 
@@ -36,129 +35,104 @@ Output:
 
 ```yaml
 version: 1
-project:
-  name: my-app
-  language: typescript
-  framework: next
-  package_manager: pnpm
-models:
-  auto: true
-  trivial: haiku
-  moderate: sonnet
-  complex: opus
-  planning: opus
-quality:
-  test: pnpm vitest run
-  lint: pnpm biome check .
-  typecheck: pnpm tsc --noEmit
-  validate_at_end: true
-execution:
-  default_mode: build
-  max_parallel_agents: 4
-  task_timeout_seconds: 600
-usage_tracking:
-  enabled: true
-  plan: max5
-  warn_at_percent: 80
+
+auth:
+  api_key: kova_xxxx...
+
+collectors:
+  claude_code:
+    enabled: true
+  cursor:
+    enabled: true
+    db_path: null
+  copilot:
+    enabled: false
+    monthly_cost: 19.00
+  windsurf:
+    enabled: false
+    api_key: null
+  devin:
+    enabled: false
+    api_key: null
+
+sync:
+  auto_sync: false
+  upload_since_days: 7
+
+display:
+  currency: USD
+  timezone: local
 ```
 
-### Set a Value
-
-Use dot-notation to set any field in `kova.yaml`:
+### Enable a Collector
 
 ```bash
-kova config set models.trivial haiku
-kova config set models.moderate sonnet
-kova config set models.complex opus
+kova config set collectors.cursor.enabled true
+kova config set collectors.windsurf.enabled true
+kova config set collectors.windsurf.api_key "cwk_your_api_key"
 ```
+
+### Configure Copilot Flat-Rate Cost
 
 ```bash
-kova config set execution.max_parallel_agents 6
-kova config set execution.task_timeout_seconds 900
-kova config set execution.default_mode team-build
+kova config set collectors.copilot.enabled true
+kova config set collectors.copilot.monthly_cost 19.00
 ```
+
+### Set Notification Webhooks
 
 ```bash
-kova config set usage_tracking.plan max20
-kova config set usage_tracking.warn_at_percent 75
+kova config set notifications.budget_warn.slack "https://hooks.slack.com/services/TEAM/CHANNEL/TOKEN"
+kova config set notifications.budget_warn.discord "https://discord.com/api/webhooks/ID/TOKEN"
 ```
+
+### Change Sync Defaults
 
 ```bash
-kova config set project.name "my-redesigned-app"
+kova config set sync.upload_since_days 30
+kova config set sync.auto_sync true
 ```
 
-Changes are written immediately to `kova.yaml` and take effect on the next `kova plan` or `kova build`.
-
-### Add a Project Rule
-
-Rules are plain-text instructions injected into every agent's context window. They encode project conventions that agents must follow:
+### Change Timezone for Cost Grouping
 
 ```bash
-kova config add-rule "Never modify migration files -- create a new migration instead"
-kova config add-rule "All API endpoints must validate input and return typed responses"
-kova config add-rule "Use TypeScript strict mode throughout -- never use the any type"
-kova config add-rule "All database queries go through lib/services/ -- never call Supabase directly from screens"
+kova config set display.timezone "America/New_York"
 ```
 
-Rules are appended to the `rules` array in `kova.yaml`:
-
-```yaml
-rules:
-  - "Never modify migration files -- create a new migration instead"
-  - "All API endpoints must validate input and return typed responses"
-  - "Use TypeScript strict mode throughout -- never use the any type"
-```
-
-### Add a Protected File Boundary
-
-Add a glob pattern to `boundaries.never_touch`. Agents will refuse to modify matching files, enforced by the hook validator:
+### Get a Single Value
 
 ```bash
-kova config add-boundary ".env.production"
-kova config add-boundary "secrets/**"
-kova config add-boundary "supabase/migrations/**"
-kova config add-boundary "infrastructure/terraform/**"
-kova config add-boundary "*.lock"
-```
-
-Resulting `kova.yaml` entry:
-
-```yaml
-boundaries:
-  never_touch:
-    - ".env*"
-    - "secrets/**"
-    - "supabase/migrations/**"
-    - "infrastructure/terraform/**"
-    - "*.lock"
+kova config get collectors.cursor.enabled
+# true
 ```
 
 ## Key Reference
 
 Common dot-notation keys for `kova config set`:
 
-| Key                                | Type    | Example                       |
-| ---------------------------------- | ------- | ----------------------------- |
-| `models.trivial`                   | string  | `haiku`                       |
-| `models.moderate`                  | string  | `sonnet`                      |
-| `models.complex`                   | string  | `opus`                        |
-| `models.planning`                  | string  | `opus`                        |
-| `models.auto`                      | boolean | `true`                        |
-| `execution.max_parallel_agents`    | number  | `6`                           |
-| `execution.default_mode`           | string  | `build` or `team-build`       |
-| `execution.task_timeout_seconds`   | number  | `900`                         |
-| `usage_tracking.plan`              | string  | `pro`, `max5`, `max20`, `api` |
-| `usage_tracking.warn_at_percent`   | number  | `75`                          |
-| `usage_tracking.pause_at_percent`  | number  | `90`                          |
-| `quality.validate_at_end`          | boolean | `true`                        |
-| `quality.validate_after_each_task` | boolean | `false`                       |
+| Key                               | Type    | Example                       |
+| --------------------------------- | ------- | ----------------------------- |
+| `collectors.claude_code.enabled`  | boolean | `true`                        |
+| `collectors.cursor.enabled`       | boolean | `true`                        |
+| `collectors.cursor.db_path`       | string  | `/custom/path/to/cursor/data` |
+| `collectors.copilot.enabled`      | boolean | `true`                        |
+| `collectors.copilot.monthly_cost` | number  | `19.00`                       |
+| `collectors.windsurf.enabled`     | boolean | `true`                        |
+| `collectors.windsurf.api_key`     | string  | `cwk_...`                     |
+| `collectors.devin.enabled`        | boolean | `true`                        |
+| `collectors.devin.api_key`        | string  | `dv_...`                      |
+| `sync.auto_sync`                  | boolean | `false`                       |
+| `sync.upload_since_days`          | number  | `30`                          |
+| `notifications.budget_warn.slack` | string  | `https://hooks.slack.com/...` |
+| `display.timezone`                | string  | `America/Chicago`             |
+| `display.currency`                | string  | `USD`                         |
 
 ## Configuration File Location
 
-`kova config` always reads and writes `kova.yaml` in the current working directory (your project root). There is no global Kova configuration file -- all settings are per-project.
+`kova config` reads and writes `~/.kova/config.yaml`. This is a global user config, not a per-project file. Settings apply to all projects on this machine.
 
 ## Related
 
-- [Configuration](/docs/getting-started/configuration) - Full `kova.yaml` reference with all fields and defaults
-- [kova init](/docs/commands/init) - Generate the initial `kova.yaml` from auto-detection
-- [kova update](/docs/commands/update) - Update templates without losing your config changes
+- [Configuration](/docs/getting-started/configuration) - Full config reference with all fields and defaults
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Step-by-step collector setup
+- [kova budget](/docs/commands/budget) - Create and manage spending budgets

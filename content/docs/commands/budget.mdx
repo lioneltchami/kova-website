@@ -1,0 +1,124 @@
+---
+title: kova budget
+description: Set spending budgets and configure alert thresholds for your AI tool usage
+---
+
+# kova budget
+
+Set monthly or daily spending limits and configure alerts so you know before you overspend. Budgets are stored locally and synced to the cloud dashboard when you run `kova sync`.
+
+## Usage
+
+```bash
+kova budget <subcommand> [flags]
+```
+
+## Subcommands
+
+| Subcommand           | Description                                   |
+| -------------------- | --------------------------------------------- |
+| `kova budget set`    | Create or update a budget                     |
+| `kova budget list`   | Show all configured budgets and current spend |
+| `kova budget remove` | Remove a budget by ID                         |
+| `kova budget status` | Show current spend vs. all budgets            |
+
+## kova budget set
+
+Create or update a spending budget.
+
+### Flags
+
+| Flag        | Type   | Required | Description                                           |
+| ----------- | ------ | -------- | ----------------------------------------------------- |
+| `--amount`  | number | Yes      | Budget limit in USD                                   |
+| `--period`  | string | Yes      | `daily` or `monthly`                                  |
+| `--warn-at` | number | No       | Warn when spend reaches this percentage (default: 80) |
+| `--tool`    | string | No       | Scope budget to a specific tool (default: all tools)  |
+| `--project` | string | No       | Scope budget to a specific project                    |
+
+### Examples
+
+**Monthly team budget across all tools:**
+
+```bash
+kova budget set --amount 200 --period monthly --warn-at 80
+```
+
+**Per-tool budget for Cursor:**
+
+```bash
+kova budget set --amount 50 --period monthly --tool cursor --warn-at 75
+```
+
+**Daily budget to catch runaway usage:**
+
+```bash
+kova budget set --amount 20 --period daily --warn-at 90
+```
+
+**Project-scoped budget:**
+
+```bash
+kova budget set --amount 75 --period monthly --project api-rewrite --warn-at 70
+```
+
+## kova budget list
+
+Show all budgets and their current spend:
+
+```bash
+kova budget list
+```
+
+```
+Budgets
+───────────────────────────────────────────────────────────────────────
+ID      Scope      Period    Limit     Spent     %      Alert
+b1      all tools  monthly   $200.00   $60.58    30%    at 80%
+b2      cursor     monthly   $50.00    $18.40    37%    at 75%
+b3      all tools  daily     $20.00    $4.21     21%    at 90%
+───────────────────────────────────────────────────────────────────────
+```
+
+## kova budget status
+
+Check whether any budgets are at or near their threshold:
+
+```bash
+kova budget status
+```
+
+```
+Budget Status -- March 2026
+  All tools  monthly  $60.58 / $200.00 (30%)  OK
+  cursor     monthly  $18.40 /  $50.00 (37%)  OK
+  All tools  daily     $4.21 /  $20.00 (21%)  OK
+```
+
+When you exceed the warn threshold, the status shows a warning:
+
+```
+  All tools  monthly  $168.00 / $200.00 (84%)  WARN -- approaching limit
+```
+
+## Alert Delivery
+
+Budget alerts appear:
+
+- In the terminal output of `kova costs` and `kova sync`
+- In the cloud dashboard under **Dashboard > Overview** as warning banners
+- Via email (Pro plan) when the threshold is crossed during a sync
+
+## kova budget remove
+
+Remove a budget by its ID:
+
+```bash
+kova budget remove b2
+```
+
+## Related
+
+- [kova costs](/docs/commands/costs) - View current spend
+- [kova sync](/docs/commands/sync) - Sync budgets and records to the cloud
+- [Team dashboard setup](/docs/guides/team-dashboard-setup) - Team-level budgets from the web dashboard

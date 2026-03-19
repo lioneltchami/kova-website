@@ -1,0 +1,131 @@
+---
+title: Team dashboard setup
+description: Create a workspace, invite team members, and set budgets to share AI cost visibility across your team
+---
+
+# Team Dashboard Setup
+
+The Kova team dashboard gives engineering managers and team leads a unified view of what every developer spends on AI tools. This guide walks through creating a workspace, inviting members, and setting team budgets.
+
+A Pro or Enterprise plan is required for team features.
+
+## Step 1: Create Your Workspace
+
+Every account needs a workspace before it can have team members. Go to **Dashboard > Team** and click **Create Workspace**.
+
+Kova creates a personal workspace owned by your account. You can rename it from the workspace settings at any time.
+
+Alternatively, create one via the CLI:
+
+```bash
+kova config set team.workspace "Acme Engineering"
+kova sync
+```
+
+## Step 2: Invite Team Members
+
+Team members must already have a Kova account. If a colleague does not have one yet, have them sign up at [kova.dev](https://kova.dev) first (the free plan is sufficient for members -- only the workspace owner needs Pro).
+
+### From the Dashboard
+
+1. Go to **Dashboard > Team**
+2. Enter the member's email address in the **Invite Member** form
+3. Choose a role: **Member** or **Admin**
+4. Click **Invite**
+
+Members are added immediately. There is no invitation email step -- they will see the shared workspace the next time they log in.
+
+### Roles
+
+| Role   | Can view costs | Can invite members | Can remove members | Can change roles |
+| ------ | -------------- | ------------------ | ------------------ | ---------------- |
+| Owner  | Yes            | Yes                | Yes (except self)  | Yes              |
+| Admin  | Yes            | Yes                | Yes (members only) | No               |
+| Member | Yes            | No                 | No                 | No               |
+
+## Step 3: Members Connect Their CLI
+
+Each team member needs to connect their local Kova CLI to the shared workspace. They should:
+
+1. Create an API key at **Dashboard > Settings > API Keys**
+2. Run `kova login` and paste the key
+
+Once authenticated, their usage records will be tagged with their user account and visible in the team dashboard when they run `kova sync`.
+
+## Step 4: Set a Team Budget
+
+Create a monthly budget for the whole team. This gives you a single number to track against and triggers alerts before the team overspends.
+
+From the CLI (owner's machine):
+
+```bash
+kova budget set --amount 500 --period monthly --warn-at 80
+kova sync
+```
+
+The budget is synced to the cloud and will appear in the dashboard for all team members.
+
+You can also set per-member budgets if you need individual spending limits:
+
+```bash
+kova budget set --amount 100 --period monthly --project api-rewrite --warn-at 70
+```
+
+## Step 5: View Team Costs
+
+### Dashboard
+
+The **Team** page in the dashboard shows:
+
+- Total team spend for the current month
+- Per-member cost breakdown with avatars and roles
+- Top spender card for quick identification
+- Average cost per member
+
+### CLI
+
+Any team member can run the following to see the shared view:
+
+```bash
+kova report --by member --period this-month
+```
+
+```
+Cost Report by Member -- March 2026
+───────────────────────────────────────────────────────────
+Member             Cost        Sessions   Top Tool
+alice@company.com  $42.18      94         claude-code
+bob@company.com    $28.40      187        cursor
+charlie@company.com $19.80     142        claude-code
+───────────────────────────────────────────────────────────
+Total              $90.38      423        Budget: 18%
+```
+
+## Upgrading to Enterprise
+
+If your team needs SSO, audit log exports, or API access, upgrade to the Enterprise plan from **Dashboard > Settings** or the [pricing page](/pricing).
+
+Enterprise adds:
+
+- SSO / SAML for single sign-on with your identity provider
+- Audit log exports for compliance reporting
+- REST API access for custom integrations
+- Priority support and dedicated onboarding
+
+## Common Questions
+
+**Can members see each other's costs?**
+Yes. All members of a workspace can see the team cost breakdown including per-member totals. Individual session-level detail is only visible to the account owner and admins.
+
+**What happens if a member leaves the team?**
+Owners and admins can remove a member from **Dashboard > Team**. The member's historical records remain in the workspace for reporting purposes but their account can no longer sync to or read from it.
+
+**Can a member belong to multiple workspaces?**
+Not yet. Each Kova account belongs to one workspace at a time.
+
+## Related
+
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Get all 5 tools reporting data
+- [kova budget](/docs/commands/budget) - CLI budget management reference
+- [kova report](/docs/commands/report) - Generate exportable cost reports
+- [Pricing](/pricing) - Pro and Enterprise plan details

@@ -12,6 +12,13 @@ interface SubscriptionProduct {
   name: string;
 }
 
+interface SubscriptionMetadata {
+  supabase_user_id?: string;
+  team_id?: string;
+  plan?: string;
+  seats?: string;
+}
+
 interface SubscriptionData {
   id: string;
   status: string;
@@ -21,10 +28,18 @@ interface SubscriptionData {
   recurringInterval: string;
   customer: SubscriptionCustomer;
   product: SubscriptionProduct;
+  metadata?: SubscriptionMetadata;
 }
 
 interface SubscriptionPayload {
   data: SubscriptionData;
+}
+
+function resolvePlanFromProduct(productName: string): string {
+  const lower = productName.toLowerCase();
+  if (lower.includes("enterprise")) return "enterprise";
+  if (lower.includes("pro")) return "pro";
+  return "free";
 }
 
 async function upsertSubscription(
@@ -33,34 +48,42 @@ async function upsertSubscription(
 ) {
   const admin = createAdminClient();
 
-  // Resolve the Supabase user from the customer's email
-  const { data: userId, error: userError } = await admin.rpc(
-    "get_user_id_by_email",
-    { input_email: sub.customer.email },
-  );
+  // Resolve the Supabase user -- prefer metadata user_id, fall back to email lookup
+  let userId: string | null = sub.metadata?.supabase_user_id ?? null;
 
-  if (userError || !userId) {
-    console.error(
-      "Could not resolve user for email:",
-      sub.customer.email,
-      userError,
+  if (!userId) {
+    const { data: resolvedId, error: userError } = await admin.rpc(
+      "get_user_id_by_email",
+      { input_email: sub.customer.email },
     );
-    return;
+
+    if (userError || !resolvedId) {
+      console.error(
+        "Could not resolve user for email:",
+        sub.customer.email,
+        userError,
+      );
+      return;
+    }
+    userId = resolvedId as string;
   }
 
   const status: SubscriptionStatus =
     overrideStatus ?? (sub.status as SubscriptionStatus);
   const productName = sub.product.name;
+  const planName =
+    status === "active" ? resolvePlanFromProduct(productName) : "free";
+  const seats = Math.max(1, parseInt(sub.metadata?.seats ?? "1", 10) || 1);
 
   // Upsert to subscriptions table
   const { error: upsertError } = await admin.from("subscriptions").upsert(
     {
-      user_id: userId as string,
+      user_id: userId,
       subscription_id: sub.id,
       subscription_status: status,
       product_name: productName,
       billing_interval: sub.recurringInterval,
-      price_amount: sub.amount / 100, // Polar amounts are in cents
+      price_amount: sub.amount / 100,
       currency: sub.currency,
       starts_at: new Date().toISOString(),
       ends_at: sub.currentPeriodEnd?.toISOString() ?? null,
@@ -77,26 +100,59 @@ async function upsertSubscription(
     return;
   }
 
-  // Update profiles.plan -- active subscriptions set the plan, cancels/revokes reset to free
-  const planName =
-    status === "active" ? resolvePlanFromProduct(productName) : "free";
-
+  // Update profiles.plan
   const { error: profileError } = await admin
     .from("profiles")
     .update({ plan: planName, updated_at: new Date().toISOString() })
-    .eq("id", userId as string);
+    .eq("id", userId);
 
   if (profileError) {
     console.error("Profile plan update error:", profileError);
   }
-}
 
-function resolvePlanFromProduct(productName: string): string {
-  const lower = productName.toLowerCase();
-  if (lower.includes("enterprise")) return "enterprise";
-  if (lower.includes("team")) return "team";
-  if (lower.includes("pro")) return "pro";
-  return "free";
+  // Update team plan and seats if a team_id is provided in metadata
+  const teamId = sub.metadata?.team_id;
+  if (teamId) {
+    const { error: teamError } = await admin
+      .from("teams")
+      .update({
+        plan: status === "active" ? planName : "free",
+        seats_purchased: status === "active" ? seats : 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", teamId);
+
+    if (teamError) {
+      console.error("Team plan update error:", teamError);
+    }
+    return;
+  }
+
+  // No team_id in metadata -- find the team the user owns and update it
+  if (status === "active") {
+    const { data: ownedMembership } = await admin
+      .from("team_members")
+      .select("team_id")
+      .eq("user_id", userId)
+      .eq("role", "owner")
+      .limit(1)
+      .maybeSingle();
+
+    if (ownedMembership) {
+      const { error: teamError } = await admin
+        .from("teams")
+        .update({
+          plan: planName,
+          seats_purchased: seats,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", ownedMembership.team_id);
+
+      if (teamError) {
+        console.error("Team plan update (owner lookup) error:", teamError);
+      }
+    }
+  }
 }
 
 export const POST = Webhooks({

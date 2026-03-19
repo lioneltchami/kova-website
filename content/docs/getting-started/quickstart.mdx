@@ -1,168 +1,129 @@
 ---
 title: Quick Start
-description: Go from zero to a completed AI-orchestrated build in under 5 minutes
+description: Track your first AI cost event and see it in the dashboard in under 5 minutes
 ---
 
 # Quick Start
 
-This guide walks through the full Kova workflow: initialize your project, plan a task, execute the build, and open a pull request. The entire sequence takes about 5 minutes for a real feature.
+This guide walks through the full Kova FinOps workflow: authenticate, record your first usage event, sync it to the cloud, and view your cost breakdown in the dashboard.
 
-## Step 1: Initialize
+## Step 1: Install and Authenticate
 
-Run `kova init` in your project root. Kova detects your tech stack automatically and scaffolds the `.claude/` directory with specialist agent definitions, skill files, and hook validators.
+Install Kova and connect it to your dashboard:
 
 ```bash
-cd your-project
-kova init
+npm install -g kova-cli
+kova login
+```
+
+Paste your API key from **Dashboard > Settings > API Keys** when prompted.
+
+## Step 2: Track a Usage Event
+
+Record a cost event manually to test the setup. In practice, Kova collectors do this automatically in the background.
+
+```bash
+kova track --tool claude-code --model claude-sonnet-4-5 --input-tokens 12500 --output-tokens 3200 --cost 0.045
 ```
 
 Expected output:
 
 ```
-Detected:
-  Language:    TypeScript
-  Framework:   Next.js 15
-  Package Mgr: pnpm
-  Database:    Supabase
-  Auth:        BetterAuth
-  Test:        vitest
-  Lint:        biome check
-
-Created:
-  .claude/commands/team-plan.md
-  .claude/commands/build.md
-  .claude/commands/team-build.md
-  .claude/skills/session-management/SKILL.md
-  .claude/skills/sub-agent-invocation/SKILL.md
-  .claude/agents/agent-rules.json
-  .claude/skills/skill-rules.json
-  .claude/settings.json
-  kova.yaml
-
-Next steps:
-  1. Review kova.yaml and adjust settings
-  2. Run: kova plan "your task description"
-  3. Review the plan, then: kova build
+Recorded usage event
+  Tool:    claude-code
+  Model:   claude-sonnet-4-5
+  Tokens:  12,500 in / 3,200 out
+  Cost:    $0.045
+  Stored:  ~/.kova/usage/2026-03/
 ```
 
-Review the generated `kova.yaml` and adjust boundaries or model settings if needed. See [Configuration](/docs/getting-started/configuration) for details.
+## Step 3: View Your Costs
 
-## Step 2: Plan
-
-Describe what you want to build. Kova analyzes your codebase, maps dependencies, designs a phased approach, and produces a structured task graph before writing a single line of code.
+See a breakdown of what you have spent:
 
 ```bash
-kova plan "add stripe payment processing to the checkout flow"
+kova costs
 ```
 
 Expected output:
 
 ```
-Planning...  (using opus model)
+AI Tool Costs -- March 2026
+───────────────────────────────────────────────
+Tool            Cost       Sessions   Tokens
+claude-code     $0.045     1          15,700
+───────────────────────────────────────────────
+Total           $0.045     1          15,700
 
-Analyzing codebase...
-  Found 34 files in src/
-  Identified app/checkout.tsx (current checkout page)
-  Detected Stripe publishable key already configured
-  Found existing stripe-checkout edge function
-
-Plan created: .claude/tasks/stripe-payment-checkout.md
-
-Summary:
-  Objective:  Add Stripe payment processing to checkout flow
-  Phases:     3 (API updates, components, validation)
-  Tasks:      7
-  Agents:     frontend-specialist, backend-engineer, quality-engineer
-  Est. Models: 2x haiku, 3x sonnet, 1x opus, 1x sonnet (validation)
-
-Task Graph:
-  1. [haiku]  update-api-contract          (no deps)
-  2. [sonnet] implement-payment-intent     (depends on 1)
-  3. [sonnet] build-payment-form           (depends on 1)
-  4. [sonnet] wire-stripe-elements         (depends on 2, 3)
-  5. [haiku]  update-confirmation-screen   (depends on 4)
-  6. [sonnet] integration-tests            (depends on 4, 5)
-  7. [sonnet] quality-validation           (depends on all)
-
-Proceed with build? [Y/n/edit]
+Period: 2026-03-01 to 2026-03-19
 ```
 
-Open the generated plan file at `.claude/tasks/stripe-payment-checkout.md` to review task descriptions, acceptance criteria, and agent assignments before proceeding. Press `Y` to confirm.
-
-## Step 3: Build
-
-Execute the plan. Kova dispatches specialist agents in dependency order, runs them in parallel where possible, and streams live progress to your terminal.
+Filter by date range or tool:
 
 ```bash
-kova build --live
+kova costs --since 7d
+kova costs --tool cursor --since 30d
+kova costs --project my-app
+```
+
+## Step 4: Sync to the Cloud Dashboard
+
+Push your local records to the cloud so they appear in your web dashboard:
+
+```bash
+kova sync
 ```
 
 Expected output:
 
 ```
-Building: stripe-payment-checkout.md
-Progress: [=========>      ] 5/7 tasks (71%)
-
-  [done]    update-api-contract          haiku    38s
-  [done]    implement-payment-intent     sonnet   2m 15s
-  [done]    build-payment-form           sonnet   1m 48s
-  [done]    wire-stripe-elements         sonnet   2m 02s
-  [done]    update-confirmation-screen   haiku    42s
-  [running] integration-tests            sonnet   started 1m ago
-  [pending] quality-validation           sonnet
-
-Estimated remaining: ~3 minutes
+Syncing usage records...
+  Uploaded: 1 record
+  Accepted: 1
+  Duplicates: 0
+  Dashboard: https://kova.dev/dashboard
 ```
 
-When the build finishes, Kova prints a summary showing task results, token usage, and estimated cost:
+Visit [kova.dev/dashboard](https://kova.dev/dashboard) to see your costs with charts, filters, and team breakdowns.
 
-```
-Build Complete: stripe-payment-checkout.md
+## Step 5: Set a Budget
 
-  Tasks: 7/7 passed
-  Duration: 8m 47s
-  Token Usage: 105,330 total
-  Cost Estimate: $0.34
-  Savings from model tiering: $0.82 (vs all-sonnet)
-```
-
-## Step 4: Create a Pull Request
-
-Once the build passes, open a pull request directly from the CLI. Kova generates a title and body from the plan objective and completed task list.
+Create a monthly budget so you get an alert before overspending:
 
 ```bash
-kova pr
+kova budget set --amount 100 --period monthly --warn-at 80
 ```
 
 Expected output:
 
 ```
-Creating PR...
-
-Title: feat: add stripe payment processing to checkout flow
-
-PR created: https://github.com/your-org/your-repo/pull/47
+Budget created
+  Amount:  $100.00 / month
+  Alert:   Warn at 80% ($80.00)
+  Synced to dashboard
 ```
 
-## The 30-Second Workflow
+When you reach 80% of your budget, Kova will warn you on the next `kova costs` or `kova sync` run.
 
-Once you are familiar with the commands, the day-to-day workflow is:
+## The Daily Workflow
 
-```bash
-kova plan "your task"   # Design the approach
-kova build              # Execute with specialist agents
-kova pr                 # Open the pull request
-```
-
-Or collapse planning and building into one step:
+Once collectors are configured for your tools (see [multi-tool tracking](/docs/guides/multi-tool-tracking)), the workflow is hands-off:
 
 ```bash
-kova run "your task"
+# Usage is recorded automatically by background collectors
+# Sync at the end of the day (or run on a schedule)
+kova sync
+
+# Check your spend whenever you like
+kova costs --since 7d
+
+# Generate a report for the team
+kova report --period monthly --format csv
 ```
 
 ## Next Steps
 
-- [Configuration](/docs/getting-started/configuration) - Tune models, boundaries, and agent rules
-- [kova plan](/docs/commands/plan) - Plan templates, model selection, and flag reference
-- [kova build](/docs/commands/build) - Checkpoint resume, parallel agents, and verbose output
-- [kova team-build](/docs/commands/team-build) - Contract-first peer-to-peer agent coordination
+- [Configuration](/docs/getting-started/configuration) - Set up collectors, budgets, and notification channels
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Auto-collect from Cursor, Copilot, Windsurf, and Devin
+- [Team dashboard setup](/docs/guides/team-dashboard-setup) - Create a workspace and invite teammates
+- [kova costs reference](/docs/commands/costs) - All flags and filter options

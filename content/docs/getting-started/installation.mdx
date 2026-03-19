@@ -1,41 +1,32 @@
 ---
 title: Installation
-description: Install Kova CLI and get ready to orchestrate AI agents on any project
+description: Install Kova CLI and start tracking your AI tool costs in under 2 minutes
 ---
 
 # Installation
 
-Kova is an npm CLI that coordinates specialized AI agents to plan, execute, and validate complex multi-file coding tasks. Install it in under 60 seconds.
+Kova is an npm CLI that tracks cost and usage across Claude Code, Cursor, GitHub Copilot, Windsurf, and Devin. Install it once and get a unified view of what your AI tools cost.
 
 ## Prerequisites
 
-Before installing Kova, make sure you have the following installed and ready:
+| Requirement | Minimum Version | Check            |
+| ----------- | --------------- | ---------------- |
+| **Node.js** | 18+             | `node --version` |
+| **Git**     | Any             | `git --version`  |
 
-| Requirement         | Minimum Version | Check              |
-| ------------------- | --------------- | ------------------ |
-| **Node.js**         | 18+             | `node --version`   |
-| **Claude Code CLI** | Latest          | `claude --version` |
-| **Git**             | Any             | `git --version`    |
-
-**Claude Code CLI** is required because Kova invokes it as a subprocess to run agents. Install it from [claude.ai/code](https://claude.ai/code) and authenticate with your Anthropic account:
-
-```bash
-claude login
-```
-
-Kova reads your Claude session automatically -- no separate API key configuration needed.
+You do not need Claude Code or any other AI tool pre-installed to track costs -- Kova collects usage data from whichever tools you already use.
 
 ## Install Methods
 
 ### Global Install (Recommended)
 
-Install Kova globally so the `kova` command is available everywhere:
+Install Kova globally so the `kova` command is available in every project:
 
 ```bash
 npm install -g kova-cli
 ```
 
-Verify the installation succeeded:
+Verify the installation:
 
 ```bash
 kova --version
@@ -43,17 +34,16 @@ kova --version
 
 ### Use Without Installing (npx)
 
-Run Kova without a global install using `npx`. Useful for one-off use or CI environments:
+Run Kova without a global install:
 
 ```bash
-npx kova-cli init
-npx kova-cli plan "add user authentication"
-npx kova-cli build
+npx kova-cli costs
+npx kova-cli sync
 ```
 
 ### From Source
 
-Clone and build locally for development or to use unreleased changes:
+Clone and build locally:
 
 ```bash
 git clone https://github.com/klokare/kova-cli
@@ -63,22 +53,30 @@ npm run build
 npm link
 ```
 
-After `npm link`, the `kova` command resolves to your local build.
+## Authenticate with the Dashboard
 
-## Initialize Your Project
+After installing, connect the CLI to your Kova cloud dashboard so usage syncs automatically.
 
-After installing, navigate to your project directory and initialize Kova:
+**Step 1**: Create a free account at [kova.dev](https://kova.dev) if you have not already.
+
+**Step 2**: Go to **Dashboard > Settings > API Keys** and create a CLI key.
+
+**Step 3**: Run the login command and paste your key when prompted:
 
 ```bash
-cd your-project
-kova init
+kova login
 ```
 
-Kova detects your language, framework, package manager, database, and auth dependencies automatically, then scaffolds the `.claude/` directory and generates a `kova.yaml` config file. The whole process takes under 30 seconds.
+```
+Enter your Kova API key: kova_xxxx...
+Authenticated as: you@example.com (Free plan)
+```
+
+The key is stored locally in `~/.kova/credentials.json` and used automatically for all subsequent commands.
 
 ## Shell Completions
 
-Enable tab completion for faster command entry. Run the appropriate command for your shell:
+Enable tab completion for faster command entry:
 
 ```bash
 # Bash
@@ -91,30 +89,18 @@ kova completions zsh >> ~/.zshrc && source ~/.zshrc
 kova completions fish > ~/.config/fish/completions/kova.fish
 ```
 
-After sourcing, press `Tab` after `kova ` to see all available commands and flags.
+## Verify Setup
 
-## Verify Authentication
-
-Confirm Kova can reach Claude Code before running your first plan:
+Confirm the CLI is authenticated and can reach the API:
 
 ```bash
-kova status
+kova costs --since 7d
 ```
 
-If Claude Code is not authenticated, you will see an error prompting you to run `claude login`. Once authenticated, you are ready to go.
-
-## Upgrade
-
-Update Kova to the latest version at any time:
-
-```bash
-npm update -g kova-cli
-```
-
-Kova detects local modifications to `.claude/` template files before overwriting them. See [kova update](/docs/commands/update) for details on the update process.
+If you see `No usage records found`, authentication is working -- you just have not tracked any events yet. Follow the [Quick Start](/docs/getting-started/quickstart) to record your first usage event.
 
 ## Next Steps
 
-- [Quick Start](/docs/getting-started/quickstart) - Create your first plan and build in under 5 minutes
-- [Configuration](/docs/getting-started/configuration) - Customize `kova.yaml` for your project
-- [kova init](/docs/commands/init) - Full reference for the init command and auto-detection logic
+- [Quick Start](/docs/getting-started/quickstart) - Track your first cost event and sync to the dashboard
+- [Configuration](/docs/getting-started/configuration) - Set up budgets, alerts, and multi-tool collectors
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Enable Cursor, Copilot, Windsurf, and Devin collectors

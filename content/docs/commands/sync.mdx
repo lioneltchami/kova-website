@@ -1,0 +1,113 @@
+---
+title: kova sync
+description: Push local usage records to the Kova cloud dashboard and optionally pull records from other machines
+---
+
+# kova sync
+
+Upload local usage records to the cloud dashboard. Records are deduplicated on the server so you can run sync as often as you like without creating duplicate entries.
+
+The Pro plan is required for cloud sync. On the Free plan, `kova sync` will display a summary of what would be uploaded but will not send any data.
+
+## Usage
+
+```bash
+kova sync [flags]
+```
+
+## Flags
+
+| Flag        | Type    | Default | Description                                           |
+| ----------- | ------- | ------- | ----------------------------------------------------- |
+| `--pull`    | boolean | false   | After uploading, pull records from other machines too |
+| `--since`   | string  | `7d`    | Only upload records newer than this date              |
+| `--dry-run` | boolean | false   | Show what would be uploaded without sending           |
+| `--verbose` | boolean | false   | Show each record as it is processed                   |
+
+## Examples
+
+### Basic Sync
+
+```bash
+kova sync
+```
+
+```
+Syncing usage records...
+  Local records: 47
+  Already synced: 32
+  Uploading: 15
+
+Uploading...
+  Accepted: 15
+  Duplicates: 0
+
+Sync complete
+  Dashboard: https://kova.dev/dashboard
+  Last sync: 2026-03-19T14:32:00Z
+```
+
+### Sync and Pull from Other Machines
+
+If you use multiple machines, `--pull` fetches records uploaded from other devices so your local store stays complete:
+
+```bash
+kova sync --pull
+```
+
+### Dry Run
+
+Preview what would be uploaded without sending anything:
+
+```bash
+kova sync --dry-run
+```
+
+```
+Dry run -- no data will be sent
+
+  Would upload: 15 records
+  Date range:   2026-03-12 to 2026-03-19
+  Estimated size: 4.2 KB
+
+  Tools:
+    claude-code  8 records   $12.40
+    cursor       5 records   $4.20
+    copilot      2 records   $0.00
+
+Run without --dry-run to upload.
+```
+
+### Upload Older Records
+
+By default, sync only processes records from the last 7 days. Use `--since` to upload older records:
+
+```bash
+kova sync --since 90d
+```
+
+## Automated Syncing
+
+Add a daily sync to your crontab to keep the dashboard current without manual effort:
+
+```bash
+# Sync every day at 6 PM
+0 18 * * * /usr/local/bin/kova sync >> ~/.kova/sync.log 2>&1
+```
+
+## Authentication
+
+`kova sync` uses the API key stored by `kova login`. If the key has been revoked or expired, you will see:
+
+```
+Authentication failed: invalid or expired API key
+Run: kova login
+```
+
+Re-run `kova login` to supply a new key.
+
+## Related
+
+- [kova login](/docs/getting-started/installation#authenticate-with-the-dashboard) - Authenticate the CLI
+- [kova costs](/docs/commands/costs) - View costs after syncing
+- [kova report](/docs/commands/report) - Generate exportable reports

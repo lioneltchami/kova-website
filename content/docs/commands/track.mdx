@@ -1,0 +1,89 @@
+---
+title: kova track
+description: Manually record a usage event from any AI tool into Kova's local cost store
+---
+
+# kova track
+
+Record a single AI tool usage event. This command writes an entry to the local usage store at `~/.kova/usage/`. Collectors call this automatically in the background; use it directly to add events from tools that do not yet have a native collector or to test your setup.
+
+## Usage
+
+```bash
+kova track [flags]
+```
+
+## Flags
+
+| Flag              | Type   | Required | Description                                                              |
+| ----------------- | ------ | -------- | ------------------------------------------------------------------------ |
+| `--tool`          | string | Yes      | Tool identifier: `claude-code`, `cursor`, `copilot`, `windsurf`, `devin` |
+| `--model`         | string | Yes      | Model name (e.g. `claude-sonnet-4-5`, `gpt-4o`)                          |
+| `--input-tokens`  | number | Yes      | Number of input/prompt tokens                                            |
+| `--output-tokens` | number | Yes      | Number of output/completion tokens                                       |
+| `--cost`          | number | Yes      | Total cost in USD for this event                                         |
+| `--project`       | string | No       | Project name (used for cost grouping)                                    |
+| `--session-id`    | string | No       | Session identifier for grouping related events                           |
+| `--duration-ms`   | number | No       | Duration of the API call in milliseconds                                 |
+| `--at`            | string | No       | Timestamp for the event (ISO 8601, defaults to now)                      |
+
+## Examples
+
+### Record a Claude Code Session
+
+```bash
+kova track \
+  --tool claude-code \
+  --model claude-sonnet-4-5 \
+  --input-tokens 12500 \
+  --output-tokens 3200 \
+  --cost 0.045 \
+  --project my-app
+```
+
+### Record a Cursor Completion
+
+```bash
+kova track \
+  --tool cursor \
+  --model gpt-4o \
+  --input-tokens 800 \
+  --output-tokens 250 \
+  --cost 0.003
+```
+
+### Backfill a Historical Event
+
+Use `--at` to record an event at a specific time (useful for backfilling from log files):
+
+```bash
+kova track \
+  --tool copilot \
+  --model gpt-4 \
+  --input-tokens 1200 \
+  --output-tokens 400 \
+  --cost 0.006 \
+  --at "2026-03-15T14:30:00Z"
+```
+
+## Output
+
+```
+Recorded usage event
+  Tool:    claude-code
+  Model:   claude-sonnet-4-5
+  Tokens:  12,500 in / 3,200 out
+  Cost:    $0.045
+  Project: my-app
+  Stored:  ~/.kova/usage/2026-03/
+```
+
+## How Events Are Stored
+
+Events are stored as newline-delimited JSON in `~/.kova/usage/YYYY-MM/records.jsonl`. Each event gets a unique ID based on a hash of the tool, timestamp, and token counts. This makes uploads idempotent -- running `kova sync` multiple times will not create duplicate records in the cloud.
+
+## Related
+
+- [kova sync](/docs/commands/sync) - Upload local records to the cloud dashboard
+- [kova costs](/docs/commands/costs) - View cost breakdowns
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Auto-collect from all tools

@@ -1,0 +1,189 @@
+---
+title: Setting up multi-tool tracking
+description: Configure Kova collectors for Cursor, GitHub Copilot, Windsurf, and Devin alongside Claude Code
+---
+
+# Setting Up Multi-Tool Tracking
+
+Kova can track cost and usage across all five major AI coding tools: Claude Code, Cursor, GitHub Copilot, Windsurf, and Devin. Each tool requires a small configuration step to activate its collector.
+
+Once configured, usage is collected automatically in the background. You do not need to run any command manually -- just use your tools normally and run `kova sync` at the end of the day.
+
+## Claude Code
+
+Claude Code tracking works out of the box after `kova login`. Kova hooks into the Claude Code CLI's session event stream to capture token counts and cost per interaction.
+
+Verify it is working:
+
+```bash
+kova costs --tool claude-code --since 7d
+```
+
+If you see no data after using Claude Code, check that you authenticated with `kova login` and that the hook is registered:
+
+```bash
+kova config get collectors.claude_code.enabled
+```
+
+If it shows `false`, enable it:
+
+```bash
+kova config set collectors.claude_code.enabled true
+```
+
+## Cursor
+
+Cursor billing is usage-based for API requests made through the Cursor proxy. Kova reads usage from the Cursor local database that stores per-session cost data.
+
+### Enable the Cursor Collector
+
+```bash
+kova config set collectors.cursor.enabled true
+```
+
+### Configure the Data Path
+
+Kova auto-detects the Cursor data path on macOS and Linux. On Windows, set the path explicitly:
+
+```bash
+# macOS (auto-detected)
+~/Library/Application Support/Cursor/User/globalStorage/
+
+# Linux (auto-detected)
+~/.config/Cursor/User/globalStorage/
+
+# Windows (set manually if auto-detect fails)
+kova config set collectors.cursor.db_path "C:/Users/YourName/AppData/Roaming/Cursor/User/globalStorage/"
+```
+
+### Verify
+
+```bash
+kova costs --tool cursor --since 7d
+```
+
+**Note**: Cursor only records cost data for API usage above its included usage tier. If you are on a Cursor Pro plan, expect zero recorded costs when you are within your included usage.
+
+## GitHub Copilot
+
+GitHub Copilot is a flat-rate subscription so there are no per-request cost events to capture. Kova tracks Copilot usage volume (completions accepted, lines generated) and uses your subscription cost to calculate a proxy cost per session.
+
+### Enable the Copilot Collector
+
+```bash
+kova config set collectors.copilot.enabled true
+kova config set collectors.copilot.monthly_cost 19.00
+```
+
+Set `monthly_cost` to your actual Copilot subscription cost per seat.
+
+### Verify
+
+```bash
+kova costs --tool copilot --since 7d
+```
+
+Copilot costs will be shown as an amortized daily amount based on your configured `monthly_cost`.
+
+## Windsurf
+
+Windsurf (by Codeium) has usage-based pricing for Cascade and chat requests above the free tier.
+
+### Enable the Windsurf Collector
+
+```bash
+kova config set collectors.windsurf.enabled true
+```
+
+### Configure API Key (Required)
+
+Kova polls the Windsurf usage API to get per-session token counts. You need a Windsurf API key:
+
+1. Go to [codeium.com](https://codeium.com) and sign in
+2. Navigate to **Account > API Access**
+3. Generate an API key
+
+```bash
+kova config set collectors.windsurf.api_key "your-windsurf-api-key"
+```
+
+### Verify
+
+```bash
+kova costs --tool windsurf --since 7d
+```
+
+## Devin
+
+Devin charges per ACU (Agent Compute Unit). Kova reads your Devin usage via the Cognition API to capture sessions, ACUs consumed, and USD cost.
+
+### Enable the Devin Collector
+
+```bash
+kova config set collectors.devin.enabled true
+```
+
+### Configure API Key (Required)
+
+1. Log in to [app.devin.ai](https://app.devin.ai)
+2. Go to **Settings > API Keys**
+3. Create a read-only key
+
+```bash
+kova config set collectors.devin.api_key "your-devin-api-key"
+```
+
+### Verify
+
+```bash
+kova costs --tool devin --since 7d
+```
+
+## Viewing All Tools Together
+
+Once collectors are active, view your full cross-tool cost summary:
+
+```bash
+kova costs
+```
+
+```
+AI Tool Costs -- March 2026
+───────────────────────────────────────────────────────────
+Tool            Cost        Sessions   Tokens (in/out)
+claude-code     $42.18      94         1.2M / 384K
+cursor          $18.40      312        820K / 210K
+copilot         $5.17       --         flat-rate ($19/mo)
+windsurf        $3.40       28         95K / 42K
+devin           $21.60      6          -- (ACU-based)
+───────────────────────────────────────────────────────────
+Total           $90.75      440+
+```
+
+## Full kova.yaml Example
+
+After configuring all collectors, your `~/.kova/config.yaml` (global config) will look like:
+
+```yaml
+collectors:
+  claude_code:
+    enabled: true
+  cursor:
+    enabled: true
+    db_path: null # auto-detect
+  copilot:
+    enabled: true
+    monthly_cost: 19.00
+  windsurf:
+    enabled: true
+    api_key: "cwk_..."
+  devin:
+    enabled: true
+    api_key: "dv_..."
+```
+
+## Related
+
+- [kova config](/docs/commands/config) - Full config reference
+- [kova costs](/docs/commands/costs) - View your cost breakdown
+- [Team dashboard setup](/docs/guides/team-dashboard-setup) - Share cost visibility with your team

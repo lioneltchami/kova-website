@@ -1,245 +1,141 @@
 ---
 title: Configuration
-description: Complete reference for kova.yaml, covering every section and field
+description: Configure Kova collectors, budgets, sync settings, and notification channels
 ---
 
 # Configuration
 
-Kova is configured via `kova.yaml` in your project root. Run `kova init` to generate a default configuration with values auto-detected from your codebase.
+Kova uses two configuration files:
 
-## kova.yaml Overview
+- `~/.kova/config.yaml` -- global user config (collectors, auth, sync preferences)
+- `~/.kova/budgets.yaml` -- budget definitions (managed by `kova budget` commands)
 
-The configuration file is divided into eight top-level sections. Each section maps directly to a part of the build pipeline.
+You rarely need to edit these files by hand. Use `kova config set` and `kova budget set` to make changes, or edit them in your text editor of choice.
 
-```yaml
-version: 1
-
-project: # Project identity and metadata
-models: # Model tier assignments per complexity level
-quality: # Test, lint, and typecheck commands
-agents: # Per-agent model overrides
-boundaries: # Files agents must never touch
-rules: # Project-wide rules injected into every agent
-execution: # Runtime behavior (mode, parallelism, timeouts)
-notifications: # Webhook dispatch on build completion
-usage_tracking: # Token budget monitoring and cost estimation
-```
-
-## Complete Example
-
-A fully configured `kova.yaml` for a Next.js + Supabase project:
+## Global Config Overview
 
 ```yaml
 version: 1
 
-project:
-  name: "my-app"
-  language: "typescript"
-  framework: "next"
-  package_manager: "pnpm"
+auth:
+  api_key: kova_xxxx... # Set by kova login
 
-models:
-  auto: true
-  trivial: "haiku"
-  moderate: "sonnet"
-  complex: "opus"
-  planning: "opus"
+collectors:
+  claude_code:
+    enabled: true
+  cursor:
+    enabled: false
+    db_path: null # Auto-detected on macOS and Linux
+  copilot:
+    enabled: false
+    monthly_cost: 19.00 # Your flat-rate Copilot subscription cost
+  windsurf:
+    enabled: false
+    api_key: null
+  devin:
+    enabled: false
+    api_key: null
 
-quality:
-  test: "pnpm vitest run"
-  lint: "pnpm biome check ."
-  typecheck: "pnpm tsc --noEmit"
-  build: "pnpm build"
-  validate_after_each_task: false
-  validate_at_end: true
-
-agents:
-  frontend-specialist: "sonnet"
-  backend-engineer: "sonnet"
-  supabase-specialist: "opus"
-  security-auditor: "opus"
-  quality-engineer: "sonnet"
-
-boundaries:
-  never_touch:
-    - ".env*"
-    - "secrets/**"
-    - "package-lock.json"
-    - "pnpm-lock.yaml"
-    - "supabase/migrations/**"
-
-rules:
-  - "Never modify migration files directly -- create a new migration instead"
-  - "All API routes must validate input and return typed responses"
-  - "Use TypeScript strict mode throughout"
-  - "Follow the existing file structure in src/"
-
-execution:
-  default_mode: "build"
-  max_parallel_agents: 4
-  enable_resume: true
-  enable_agent_teams: false
-  task_timeout_seconds: 600
+sync:
+  auto_sync: false # Run sync automatically after each kova track call
+  sync_interval_hours: 24 # For scheduled/background sync (if auto_sync is true)
+  upload_since_days: 7 # Default lookback window for kova sync
 
 notifications:
-  on_build_complete:
-    discord: null # Add your Discord webhook URL here
-    slack: null
-    custom: null
+  budget_warn:
+    slack: null # Slack webhook URL for budget alerts
+    discord: null # Discord webhook URL for budget alerts
 
-usage_tracking:
-  enabled: true
-  plan: "max5"
-  show_per_task: true
-  show_build_summary: true
-  show_cost_estimate: true
-  warn_at_percent: 80
-  pause_at_percent: 95
+display:
+  currency: USD
+  timezone: local # Timezone for date grouping (e.g. "America/New_York")
 ```
 
 ## Section Reference
 
-### project
+### auth
 
-Identifies your project and provides context to planning agents.
+Set automatically by `kova login`. Do not edit manually.
 
-| Field             | Type   | Description                                                           |
-| ----------------- | ------ | --------------------------------------------------------------------- |
-| `name`            | string | Project identifier used in plan file names                            |
-| `language`        | string | Primary language (`typescript`, `javascript`, `python`, `go`, `rust`) |
-| `framework`       | string | Framework (`next`, `expo`, `react`, `express`, `django`, `fastapi`)   |
-| `package_manager` | string | Package manager (`npm`, `pnpm`, `yarn`, `bun`)                        |
+| Field     | Description                 |
+| --------- | --------------------------- |
+| `api_key` | Your Kova dashboard API key |
 
-### models
+### collectors
 
-Controls which Claude model each complexity tier uses. Auto-selection classifies tasks based on file count, security sensitivity, and dependency depth.
+Controls which AI tools Kova collects usage data from. See [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) for step-by-step instructions per tool.
 
-| Field      | Type    | Default  | Description                                      |
-| ---------- | ------- | -------- | ------------------------------------------------ |
-| `auto`     | boolean | `true`   | Enable automatic model selection per task        |
-| `trivial`  | string  | `haiku`  | Model for single-file edits and config changes   |
-| `moderate` | string  | `sonnet` | Model for 2-5 file changes and standard CRUD     |
-| `complex`  | string  | `opus`   | Model for architecture, security, and migrations |
-| `planning` | string  | `opus`   | Model used by `kova plan`                        |
+| Field                  | Type    | Description                                    |
+| ---------------------- | ------- | ---------------------------------------------- |
+| `claude_code.enabled`  | boolean | Enable Claude Code tracking (default: true)    |
+| `cursor.enabled`       | boolean | Enable Cursor tracking                         |
+| `cursor.db_path`       | string  | Override auto-detected Cursor data path        |
+| `copilot.enabled`      | boolean | Enable GitHub Copilot tracking                 |
+| `copilot.monthly_cost` | number  | Your Copilot subscription cost per seat in USD |
+| `windsurf.enabled`     | boolean | Enable Windsurf tracking                       |
+| `windsurf.api_key`     | string  | Windsurf API key for usage polling             |
+| `devin.enabled`        | boolean | Enable Devin tracking                          |
+| `devin.api_key`        | string  | Devin read-only API key                        |
 
-Auto-selection can be overridden per task in a plan file, or globally with `--model-override` on `kova build`.
+### sync
 
-### quality
+Controls how and when records are uploaded to the cloud.
 
-Commands Kova runs to verify correctness before and after builds.
-
-| Field                      | Type           | Description                                                           |
-| -------------------------- | -------------- | --------------------------------------------------------------------- |
-| `test`                     | string or null | Command to run the test suite                                         |
-| `lint`                     | string or null | Command to run the linter                                             |
-| `typecheck`                | string or null | Command to run the type checker                                       |
-| `build`                    | string or null | Command to build the project                                          |
-| `validate_after_each_task` | boolean        | Run quality checks after every task (slower but catches errors early) |
-| `validate_at_end`          | boolean        | Run quality checks after all tasks complete                           |
-
-### agents
-
-Override the default model for specific agent types. Agents not listed use the value from `models.moderate`.
-
-```yaml
-agents:
-  supabase-specialist: "opus" # Database work is complex by default
-  security-auditor: "opus" # Security always gets the most capable model
-  quality-engineer: "sonnet" # Validation rarely needs opus
-```
-
-### boundaries
-
-Defines files and patterns agents are forbidden from modifying.
-
-| Field         | Type     | Description                       |
-| ------------- | -------- | --------------------------------- |
-| `never_touch` | string[] | Glob patterns for protected files |
-
-Patterns follow gitignore syntax. Common examples:
-
-```yaml
-boundaries:
-  never_touch:
-    - ".env*" # All env files
-    - "secrets/**" # Secrets directory
-    - "*.lock" # Lock files
-    - "supabase/migrations/**" # Existing migrations
-```
-
-Agents that attempt to modify protected files will be blocked by the hook validator.
-
-### rules
-
-Plain-text instructions injected into every agent's context. Use rules to encode project conventions that agents must follow.
-
-```yaml
-rules:
-  - "Never use any instead of proper TypeScript types"
-  - "All database queries go through lib/services/, never direct Supabase calls from screens"
-  - "Create a new migration file for every schema change -- never edit existing migrations"
-```
-
-Add rules from the CLI with `kova config add-rule "your rule text"`.
-
-### execution
-
-Controls runtime behavior for builds.
-
-| Field                  | Type    | Default | Description                                     |
-| ---------------------- | ------- | ------- | ----------------------------------------------- |
-| `default_mode`         | string  | `build` | Default execution mode: `build` or `team-build` |
-| `max_parallel_agents`  | number  | `4`     | Maximum concurrent agents                       |
-| `enable_resume`        | boolean | `true`  | Allow `--resume` to continue interrupted builds |
-| `enable_agent_teams`   | boolean | `false` | Allow `kova team-build` (requires env var)      |
-| `task_timeout_seconds` | number  | `600`   | Per-task timeout before agent is terminated     |
+| Field                 | Type    | Default | Description                                                   |
+| --------------------- | ------- | ------- | ------------------------------------------------------------- |
+| `auto_sync`           | boolean | `false` | Automatically sync after every tracked event                  |
+| `sync_interval_hours` | number  | `24`    | Minimum hours between auto-syncs to avoid hitting rate limits |
+| `upload_since_days`   | number  | `7`     | Default lookback window used by `kova sync` without `--since` |
 
 ### notifications
 
-Send webhook payloads when builds complete, fail, or start.
+Webhook URLs for budget alert notifications. Alerts fire when your spend crosses a `warn_at` threshold defined in a budget.
 
 ```yaml
 notifications:
-  on_build_complete:
-    discord: "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+  budget_warn:
     slack: "https://hooks.slack.com/services/TEAM/CHANNEL/TOKEN"
-    custom: "https://your-server.com/kova-webhook"
+    discord: "https://discord.com/api/webhooks/ID/TOKEN"
 ```
 
-The payload includes build status, task counts, duration, models used, and timestamp. Any null value disables that channel.
+### display
 
-### usage_tracking
+| Field      | Type   | Default | Description                                      |
+| ---------- | ------ | ------- | ------------------------------------------------ |
+| `currency` | string | `USD`   | Display currency (USD only in v0.3)              |
+| `timezone` | string | local   | Timezone used for daily grouping in `kova costs` |
 
-Monitors token consumption and warns before you hit Claude's rate limits.
+## Common Configuration Tasks
 
-| Field                | Type    | Default | Description                                        |
-| -------------------- | ------- | ------- | -------------------------------------------------- |
-| `enabled`            | boolean | `true`  | Enable token tracking                              |
-| `plan`               | string  | `max5`  | Your Claude plan: `pro`, `max5`, `max20`, or `api` |
-| `show_per_task`      | boolean | `true`  | Show token count after each task                   |
-| `show_build_summary` | boolean | `true`  | Show full table at build end                       |
-| `show_cost_estimate` | boolean | `true`  | Show estimated cost                                |
-| `warn_at_percent`    | number  | `80`    | Warn when this percent of window is consumed       |
-| `pause_at_percent`   | number  | `95`    | Pause and ask before continuing                    |
-
-## Editing Configuration
-
-Use `kova config` to make changes without editing the file directly:
+### Enable a Collector
 
 ```bash
-# Set a value
-kova config set models.trivial haiku
-kova config set execution.max_parallel_agents 6
+kova config set collectors.cursor.enabled true
+kova config set collectors.copilot.enabled true
+kova config set collectors.copilot.monthly_cost 19.00
+```
 
-# Add a rule
-kova config add-rule "Always use server-side validation"
+### Set a Slack Alert Channel
 
-# Add a boundary
-kova config add-boundary "infrastructure/**"
+```bash
+kova config set notifications.budget_warn.slack "https://hooks.slack.com/..."
+```
+
+### Change the Default Sync Window
+
+```bash
+kova config set sync.upload_since_days 30
+```
+
+### View Current Config
+
+```bash
+kova config
 ```
 
 ## Related
 
-- [kova config](/docs/commands/config) - CLI config editor reference
-- [kova init](/docs/commands/init) - How auto-detection populates defaults
-- [kova update](/docs/commands/update) - Updating templates without losing your config
+- [kova config](/docs/commands/config) - Full config command reference
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Enable each collector
+- [kova budget](/docs/commands/budget) - Create and manage spending budgets
+- [kova sync](/docs/commands/sync) - Upload usage records to the cloud

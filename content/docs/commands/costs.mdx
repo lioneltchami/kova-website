@@ -1,0 +1,115 @@
+---
+title: kova costs
+description: Display a cost breakdown of AI tool usage by tool, model, project, or date range
+---
+
+# kova costs
+
+Display your AI tool spending in the terminal. Reads from the local usage store at `~/.kova/usage/`. Combine `--since`, `--tool`, and `--project` flags to slice the data any way you need.
+
+## Usage
+
+```bash
+kova costs [flags]
+```
+
+## Flags
+
+| Flag         | Type   | Default | Description                                                                        |
+| ------------ | ------ | ------- | ---------------------------------------------------------------------------------- |
+| `--since`    | string | `30d`   | Time range: `7d`, `30d`, `90d`, `this-month`, `last-month`, or ISO date            |
+| `--until`    | string | now     | End of range (ISO date or relative)                                                |
+| `--tool`     | string | all     | Filter to a specific tool: `claude-code`, `cursor`, `copilot`, `windsurf`, `devin` |
+| `--project`  | string | all     | Filter to a specific project name                                                  |
+| `--model`    | string | all     | Filter to a specific model (e.g. `claude-sonnet-4-5`)                              |
+| `--group-by` | string | `tool`  | Group results by: `tool`, `model`, `project`, `day`, `week`, `month`               |
+| `--format`   | string | `table` | Output format: `table`, `json`, `csv`                                              |
+| `--sort`     | string | `cost`  | Sort by: `cost`, `tokens`, `sessions`, `date`                                      |
+
+## Examples
+
+### Current Month by Tool
+
+```bash
+kova costs
+```
+
+```
+AI Tool Costs -- March 2026
+───────────────────────────────────────────────────────────
+Tool            Cost        Sessions   Tokens (in/out)
+claude-code     $42.18      94         1.2M / 384K
+cursor          $18.40      312        820K / 210K
+copilot         $0.00       --         (flat-rate plan)
+───────────────────────────────────────────────────────────
+Total           $60.58      406        2.0M / 594K
+
+Period: 2026-03-01 to 2026-03-19
+```
+
+### Last 7 Days
+
+```bash
+kova costs --since 7d
+```
+
+### Filter by Tool
+
+```bash
+kova costs --tool cursor --since 30d
+```
+
+### Group by Project
+
+```bash
+kova costs --group-by project --since this-month
+```
+
+```
+AI Tool Costs by Project -- March 2026
+───────────────────────────────────────────────────────────
+Project         Cost        Sessions   Tools
+kova-website    $28.40      187        claude-code, cursor
+api-service     $19.80      142        claude-code
+data-pipeline   $12.38      77         cursor, copilot
+───────────────────────────────────────────────────────────
+Total           $60.58      406
+```
+
+### Daily Breakdown
+
+```bash
+kova costs --group-by day --since 14d
+```
+
+### JSON Output (for scripting)
+
+```bash
+kova costs --format json --since this-month
+```
+
+### Include Budget Status
+
+When a budget is configured, the costs output includes current spend vs. limit:
+
+```
+AI Tool Costs -- March 2026
+...
+Budget: $60.58 / $100.00 (61%) -- on track
+```
+
+## Sync Before Viewing
+
+`kova costs` reads from the local store only. If you have synced records from another machine, run `kova sync` first to pull the latest cloud records:
+
+```bash
+kova sync --pull
+kova costs
+```
+
+## Related
+
+- [kova track](/docs/commands/track) - Record a manual usage event
+- [kova sync](/docs/commands/sync) - Push local records to the cloud
+- [kova report](/docs/commands/report) - Generate exportable reports
+- [kova budget](/docs/commands/budget) - Set spending limits and alerts

@@ -1,0 +1,114 @@
+---
+title: kova report
+description: Generate cost reports for a period -- export as CSV, JSON, or formatted terminal output
+---
+
+# kova report
+
+Generate a detailed cost report for a period. Reports pull from the cloud dashboard so they include records from all your machines. Use `--format csv` or `--format json` to export data for spreadsheets or billing systems.
+
+## Usage
+
+```bash
+kova report [flags]
+```
+
+## Flags
+
+| Flag        | Type   | Default      | Description                                                                                |
+| ----------- | ------ | ------------ | ------------------------------------------------------------------------------------------ |
+| `--period`  | string | `this-month` | Reporting period: `this-month`, `last-month`, `this-quarter`, `last-quarter`, or `YYYY-MM` |
+| `--format`  | string | `table`      | Output format: `table`, `csv`, `json`                                                      |
+| `--output`  | string | stdout       | Write output to this file path instead of the terminal                                     |
+| `--by`      | string | `tool`       | Group by: `tool`, `model`, `project`, `member`, `day`                                      |
+| `--tool`    | string | all          | Filter to a specific tool                                                                  |
+| `--project` | string | all          | Filter to a specific project                                                               |
+
+## Examples
+
+### Terminal Report for the Current Month
+
+```bash
+kova report
+```
+
+```
+Cost Report -- March 2026
+Generated: 2026-03-19
+
+By Tool
+───────────────────────────────────────────────────────────
+Tool            Cost        Sessions   Tokens (in/out)
+claude-code     $42.18      94         1.2M / 384K
+cursor          $18.40      312        820K / 210K
+copilot         $0.00       --         flat-rate
+windsurf        $3.40       28         95K / 42K
+───────────────────────────────────────────────────────────
+Total           $63.98      434
+
+Budget: $63.98 / $200.00 (32%)
+```
+
+### Export Last Month as CSV
+
+```bash
+kova report --period last-month --format csv --output march-2026-costs.csv
+```
+
+The CSV includes one row per usage event with columns: `date`, `tool`, `model`, `project`, `input_tokens`, `output_tokens`, `cost_usd`.
+
+### Export as JSON (for Billing Integration)
+
+```bash
+kova report --period this-month --format json --output costs.json
+```
+
+### Group by Project
+
+```bash
+kova report --by project --period last-month
+```
+
+```
+Cost Report by Project -- February 2026
+───────────────────────────────────────────────────────────
+Project         Cost        Sessions   Top Tool
+kova-website    $38.20      187        claude-code
+api-service     $19.80      142        claude-code
+data-pipeline   $5.98       77         cursor
+───────────────────────────────────────────────────────────
+Total           $63.98      406
+```
+
+### Group by Team Member (Pro)
+
+```bash
+kova report --by member --period this-month
+```
+
+```
+Cost Report by Member -- March 2026
+───────────────────────────────────────────────────────────
+Member          Cost        Sessions   Top Tool
+alice@co.com    $28.40      187        claude-code
+bob@co.com      $19.80      142        cursor
+charlie@co.com  $15.78      105        claude-code
+───────────────────────────────────────────────────────────
+Total           $63.98      434
+```
+
+### Quarterly Summary
+
+```bash
+kova report --period this-quarter --by day --format csv --output q1-daily.csv
+```
+
+## Authentication
+
+Reports pull from the cloud API. The API key from `kova login` is used automatically. Ensure you have synced recent records with `kova sync` before generating a report.
+
+## Related
+
+- [kova costs](/docs/commands/costs) - Quick in-terminal cost view
+- [kova sync](/docs/commands/sync) - Push records to the cloud before reporting
+- [kova budget](/docs/commands/budget) - Set spending limits

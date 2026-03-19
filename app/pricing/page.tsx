@@ -11,113 +11,88 @@ type BillingCycle = "monthly" | "annual";
 
 interface PricingTier {
   name: string;
+  slug: string;
   monthlyPrice: number | null;
   annualPrice: number | null;
+  annualTotal: number | null;
   description: string;
   features: string[];
-  cta: {
-    label: string;
-    href: string;
-    variant: "primary" | "outline";
-  };
-  badge?: string;
   highlighted?: boolean;
+  badge?: string;
+  hasSeatSelector?: boolean;
 }
 
 const tiers: PricingTier[] = [
   {
     name: "Free",
+    slug: "free",
     monthlyPrice: 0,
     annualPrice: 0,
-    description: "Everything you need to build with Kova, forever free.",
+    annualTotal: 0,
+    description: "One developer, Claude Code tracking, 30-day local history.",
     features: [
-      "All 11 CLI commands",
-      "6 plan templates",
-      "GitHub integration (PR, issues, branches)",
-      "Shell completions",
-      "Interactive mode",
-      "Local build history",
+      "1 developer seat",
+      "Claude Code usage tracking",
+      "30-day local history",
+      "Daily cost summaries",
+      "CLI budget alerts",
     ],
-    cta: {
-      label: "Get Started",
-      href: "/docs/getting-started/installation",
-      variant: "outline",
-    },
   },
   {
     name: "Pro",
-    monthlyPrice: 29,
-    annualPrice: 23,
+    slug: "pro",
+    monthlyPrice: 15,
+    annualPrice: 12,
+    annualTotal: 144,
     description:
-      "For developers who ship daily and need cloud-powered insights.",
+      "All 5 AI tools tracked, 1-year cloud history, team dashboard, and budget alerts.",
     features: [
       "Everything in Free",
-      "Cloud build history & analytics",
-      "Token usage optimization",
-      "Cost tracking dashboard",
-      "Unlimited webhooks",
+      "All 5 tools: Cursor, Copilot, Windsurf, Devin + Claude Code",
+      "1-year cloud history",
+      "Team dashboard with per-member costs",
+      "Budget alerts (daily + monthly)",
+      "CSV / JSON export",
       "Email support",
     ],
-    cta: {
-      label: "Subscribe",
-      href: "#",
-      variant: "primary",
-    },
-    badge: "Most Popular",
     highlighted: true,
-  },
-  {
-    name: "Team",
-    monthlyPrice: 99,
-    annualPrice: 79,
-    description: "For engineering teams that need shared plans and governance.",
-    features: [
-      "Everything in Pro",
-      "Shared team plans",
-      "Approval workflows",
-      "Centralized config",
-      "5 team seats",
-    ],
-    cta: {
-      label: "Subscribe",
-      href: "#",
-      variant: "primary",
-    },
+    badge: "Most Popular",
+    hasSeatSelector: true,
   },
   {
     name: "Enterprise",
-    monthlyPrice: 299,
-    annualPrice: null,
-    description: "For organizations that need compliance, control, and scale.",
+    slug: "enterprise",
+    monthlyPrice: 30,
+    annualPrice: 24,
+    annualTotal: 288,
+    description:
+      "Pro plus SSO, audit log exports, API access, and priority support.",
     features: [
-      "Everything in Team",
-      "SSO / SAML",
-      "Audit logs",
-      "Custom agent definitions",
-      "Unlimited seats",
-      "Dedicated support",
+      "Everything in Pro",
+      "SSO / SAML integration",
+      "Audit log exports",
+      "REST API access",
+      "Priority support + SLA",
+      "Custom data retention",
+      "Dedicated onboarding",
     ],
-    cta: {
-      label: "Contact Us",
-      href: "mailto:hello@kova.dev",
-      variant: "primary",
-    },
+    hasSeatSelector: true,
   },
 ];
 
 function PriceDisplay({
   tier,
   billing,
+  seats,
 }: {
   tier: PricingTier;
   billing: BillingCycle;
+  seats: number;
 }) {
-  const price =
-    billing === "annual" && tier.annualPrice !== null
-      ? tier.annualPrice
-      : tier.monthlyPrice;
+  const perSeatPrice =
+    billing === "annual" ? tier.annualPrice : tier.monthlyPrice;
 
-  if (price === null) {
+  if (perSeatPrice === null) {
     return (
       <div className="mt-6 mb-2">
         <span className="text-4xl font-bold text-white">Custom</span>
@@ -125,7 +100,7 @@ function PriceDisplay({
     );
   }
 
-  if (price === 0) {
+  if (perSeatPrice === 0) {
     return (
       <div className="mt-6 mb-2">
         <span className="text-4xl font-bold text-white">$0</span>
@@ -134,6 +109,7 @@ function PriceDisplay({
     );
   }
 
+  const totalMonthly = perSeatPrice * seats;
   const showSavings =
     billing === "annual" &&
     tier.annualPrice !== null &&
@@ -142,8 +118,8 @@ function PriceDisplay({
 
   return (
     <div className="mt-6 mb-2">
-      <div className="flex items-end gap-2">
-        <span className="text-4xl font-bold text-white">${price}</span>
+      <div className="flex items-end gap-2 flex-wrap">
+        <span className="text-4xl font-bold text-white">${totalMonthly}</span>
         <span className="mb-1 text-sm text-kova-silver-dim">/ month</span>
         {showSavings && (
           <span className="mb-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
@@ -151,11 +127,54 @@ function PriceDisplay({
           </span>
         )}
       </div>
-      {billing === "annual" && (
-        <p className="mt-1 text-xs text-kova-silver-dim">
-          Billed ${(price * 12).toLocaleString()} annually
+      {seats > 1 && (
+        <p className="mt-0.5 text-xs text-kova-silver-dim">
+          ${perSeatPrice}/seat &times; {seats} seats
         </p>
       )}
+      {billing === "annual" && tier.annualTotal !== null && seats > 0 && (
+        <p className="mt-0.5 text-xs text-kova-silver-dim">
+          Billed ${(tier.annualTotal * seats).toLocaleString()} annually
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SeatSelector({
+  seats,
+  onChange,
+}: {
+  seats: number;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 mt-3 mb-1">
+      <label className="text-xs text-kova-silver-dim">Seats</label>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onChange(Math.max(1, seats - 1))}
+          className="w-6 h-6 rounded border border-kova-border bg-kova-charcoal-light text-kova-silver text-sm font-bold hover:border-kova-blue transition-colors"
+        >
+          -
+        </button>
+        <input
+          type="number"
+          min={1}
+          max={500}
+          value={seats}
+          onChange={(e) =>
+            onChange(Math.max(1, Math.min(500, parseInt(e.target.value) || 1)))
+          }
+          className="w-12 text-center bg-kova-charcoal-light border border-kova-border rounded px-1 py-0.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-kova-blue"
+        />
+        <button
+          onClick={() => onChange(Math.min(500, seats + 1))}
+          className="w-6 h-6 rounded border border-kova-border bg-kova-charcoal-light text-kova-silver text-sm font-bold hover:border-kova-blue transition-colors"
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }
@@ -163,17 +182,26 @@ function PriceDisplay({
 function PricingCard({
   tier,
   billing,
+  seats,
+  onSeatsChange,
 }: {
   tier: PricingTier;
   billing: BillingCycle;
+  seats: number;
+  onSeatsChange: (n: number) => void;
 }) {
-  const isExternalOrMailto =
-    tier.cta.href.startsWith("mailto:") || tier.cta.href.startsWith("http");
+  const isFree = tier.monthlyPrice === 0;
 
-  const ctaClassName =
-    tier.cta.variant === "primary"
-      ? "mt-6 block w-full rounded-lg bg-kova-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-kova-blue-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal"
-      : "mt-6 block w-full rounded-lg border border-kova-border px-4 py-2.5 text-center text-sm font-semibold text-kova-silver transition-colors hover:border-kova-silver hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal";
+  const checkoutHref = isFree
+    ? "/docs/getting-started/installation"
+    : `/api/polar/checkout?product=${tier.slug}_${billing}&seats=${seats}`;
+
+  const ctaLabel = isFree ? "Get Started Free" : "Subscribe";
+  const isPrimary = !isFree;
+
+  const ctaClassName = isPrimary
+    ? "mt-5 block w-full rounded-lg bg-kova-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-kova-blue-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal"
+    : "mt-5 block w-full rounded-lg border border-kova-border px-4 py-2.5 text-center text-sm font-semibold text-kova-silver transition-colors hover:border-kova-silver hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal";
 
   return (
     <div
@@ -192,19 +220,16 @@ function PricingCard({
 
       <div>
         <h3 className="text-base font-semibold text-white">{tier.name}</h3>
-        <PriceDisplay tier={tier} billing={billing} />
-        <p className="text-sm text-kova-silver-dim">{tier.description}</p>
+        <PriceDisplay tier={tier} billing={billing} seats={seats} />
+        {tier.hasSeatSelector && (
+          <SeatSelector seats={seats} onChange={onSeatsChange} />
+        )}
+        <p className="text-sm text-kova-silver-dim mt-2">{tier.description}</p>
       </div>
 
-      {isExternalOrMailto ? (
-        <a href={tier.cta.href} className={ctaClassName}>
-          {tier.cta.label}
-        </a>
-      ) : (
-        <Link href={tier.cta.href} className={ctaClassName}>
-          {tier.cta.label}
-        </Link>
-      )}
+      <Link href={checkoutHref} className={ctaClassName}>
+        {ctaLabel}
+      </Link>
 
       <ul className="mt-6 space-y-3 border-t border-kova-border pt-6">
         {tier.features.map((feature) => (
@@ -224,13 +249,26 @@ function PricingCard({
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<BillingCycle>("monthly");
+  const [proSeats, setProSeats] = useState(1);
+  const [enterpriseSeats, setEnterpriseSeats] = useState(1);
+
+  function getSeats(tier: PricingTier) {
+    if (tier.slug === "pro") return proSeats;
+    if (tier.slug === "enterprise") return enterpriseSeats;
+    return 1;
+  }
+
+  function handleSeatsChange(tier: PricingTier, n: number) {
+    if (tier.slug === "pro") setProSeats(n);
+    else if (tier.slug === "enterprise") setEnterpriseSeats(n);
+  }
 
   return (
     <main className="min-h-screen bg-kova-charcoal">
       <Navbar />
 
       <section className="px-4 pb-24 pt-32">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-5xl">
           {/* Header */}
           <div className="mb-12 text-center">
             <GradientHeading
@@ -241,7 +279,8 @@ export default function PricingPage() {
               Simple, Transparent Pricing
             </GradientHeading>
             <p className="mx-auto mt-4 max-w-xl text-base text-kova-silver-dim">
-              Free forever for individuals. Pro for teams that ship.
+              Free forever for solo developers. Pro for teams that want full
+              visibility into AI tool spend.
             </p>
 
             {/* Billing toggle */}
@@ -275,23 +314,29 @@ export default function PricingPage() {
                       : "bg-emerald-500/15 text-emerald-400",
                   ].join(" ")}
                 >
-                  -20%
+                  Save 20%
                 </span>
               </button>
             </div>
           </div>
 
-          {/* Pricing grid */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Pricing grid -- 3 tiers */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             {tiers.map((tier) => (
-              <PricingCard key={tier.name} tier={tier} billing={billing} />
+              <PricingCard
+                key={tier.name}
+                tier={tier}
+                billing={billing}
+                seats={getSeats(tier)}
+                onSeatsChange={(n) => handleSeatsChange(tier, n)}
+              />
             ))}
           </div>
 
           {/* Bottom note */}
           <p className="mt-10 text-center text-xs text-kova-silver-dim">
-            All prices in USD. Annual plans billed yearly. Cancel anytime.
-            Enterprise pricing is fixed monthly.
+            All prices in USD per seat. Annual plans billed yearly. Cancel
+            anytime. Enterprise pricing scales linearly with seat count.
           </p>
         </div>
       </section>
