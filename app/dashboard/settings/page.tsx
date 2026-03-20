@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiKeyManager } from "@/components/dashboard/api-key-manager";
+import { BadgeEmbedCard } from "@/components/dashboard/badge-embed-card";
 import { GdprActions } from "@/components/dashboard/gdpr-actions";
 import { formatRelativeDate } from "@/lib/dashboard-utils";
 import { createClient } from "@/utils/supabase/server";
@@ -120,6 +121,14 @@ export default async function SettingsPage() {
 					API keys authenticate the Kova CLI with your dashboard.
 				</p>
 				<ApiKeyManager />
+			</section>
+
+			{/* Cost Badge */}
+			<section className="mb-6">
+				<BadgeEmbedCard
+					userId={user.id}
+					baseUrl={process.env.NEXT_PUBLIC_APP_URL ?? "https://kova.dev"}
+				/>
 			</section>
 
 			{/* Billing History */}

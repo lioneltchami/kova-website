@@ -22,7 +22,7 @@ function CopyInstallButton() {
   return (
     <button
       onClick={handleCopy}
-      className="relative inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-kova-blue to-kova-blue-light text-white font-semibold text-sm hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal"
+      className="relative inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-kova-blue to-kova-blue-light text-white font-semibold text-sm hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-kova-charcoal"
     >
       {copied ? (
         <>
@@ -201,7 +201,7 @@ export function Hero() {
         </h1>
 
         {/* Subtitle typewriter */}
-        <div className="mt-6 mb-10 text-lg sm:text-xl text-kova-silver-dim min-h-[2rem]">
+        <div className="mt-6 mb-10 text-lg sm:text-xl text-gray-500 dark:text-kova-silver-dim min-h-[2rem]">
           <Typewriter
             phrases={[
               "Track AI spend across Claude Code, Cursor, and more.",
@@ -232,7 +232,7 @@ export function Hero() {
         </div>
 
         {/* Subtle stats row */}
-        <div className="mt-14 flex flex-wrap justify-center gap-8 text-sm text-kova-silver-dim">
+        <div className="mt-14 flex flex-wrap justify-center gap-8 text-sm text-gray-500 dark:text-kova-silver-dim">
           {[
             ["5", "AI Tools Tracked"],
             ["$0", "To Start"],

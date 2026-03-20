@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 import { CostTrendChart } from "@/components/dashboard/cost-trend-chart";
 import {
@@ -9,12 +10,12 @@ import { ForecastCard } from "@/components/dashboard/forecast-card";
 import { ForecastChart } from "@/components/dashboard/forecast-chart";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { ToolComparisonChart } from "@/components/dashboard/tool-comparison-chart";
-import { forecastCosts } from "@/lib/forecasting";
 import {
   formatCost,
   formatRelativeDate,
   formatTokens,
 } from "@/lib/dashboard-utils";
+import { forecastCosts } from "@/lib/forecasting";
 import { createClient } from "@/utils/supabase/server";
 
 export const metadata = {
@@ -79,54 +80,87 @@ export default async function DashboardOverview({
   const todayDate = now.toISOString().slice(0, 10);
 
   // --- Rollup queries (dramatically fewer rows than raw usage_records) ---
+  // All five queries are independent and can be fetched in parallel.
+  // The three rollup queries are wrapped with a 5-minute cache so repeat
+  // page loads within the TTL skip the database entirely. Cache is invalidated
+  // by revalidateTag called in app/api/v1/usage/route.ts after each upload.
 
-  // Current month KPI: use daily rollups grouped by day in the month
-  const { data: thisMonthRollup } = await supabase
-    .from("usage_daily_rollups")
-    .select("total_cost_usd, total_sessions, tool, date")
-    .eq("user_id", user.id)
-    .gte("date", monthStart)
-    .lte("date", monthEnd);
+  const fetchThisMonthRollup = unstable_cache(
+    async (userId: string, from: string, to: string) => {
+      const { data } = await supabase
+        .from("usage_daily_rollups")
+        .select("total_cost_usd, total_sessions, tool, date")
+        .eq("user_id", userId)
+        .gte("date", from)
+        .lte("date", to);
+      return data;
+    },
+    ["dashboard-this-month-rollup"],
+    { revalidate: 300, tags: [`user-rollup-${user.id}`] },
+  );
 
-  // Previous month KPI: use daily rollups for month-over-month comparison
-  const { data: prevMonthRollup } = await supabase
-    .from("usage_daily_rollups")
-    .select("total_cost_usd")
-    .eq("user_id", user.id)
-    .gte("date", prevMonthStart)
-    .lte("date", prevMonthEnd);
+  const fetchPrevMonthRollup = unstable_cache(
+    async (userId: string, from: string, to: string) => {
+      const { data } = await supabase
+        .from("usage_daily_rollups")
+        .select("total_cost_usd")
+        .eq("user_id", userId)
+        .gte("date", from)
+        .lte("date", to);
+      return data;
+    },
+    ["dashboard-prev-month-rollup"],
+    { revalidate: 300, tags: [`user-rollup-${user.id}`] },
+  );
 
-  // Range data for trend chart and tool comparison: use daily rollups
-  const { data: rangeRollup } = await supabase
-    .from("usage_daily_rollups")
-    .select(
-      "date, tool, total_cost_usd, total_sessions, total_input_tokens, total_output_tokens",
-    )
-    .eq("user_id", user.id)
-    .gte("date", sinceDate)
-    .lte("date", todayDate);
+  const fetchRangeRollup = unstable_cache(
+    async (userId: string, from: string, to: string) => {
+      const { data } = await supabase
+        .from("usage_daily_rollups")
+        .select(
+          "date, tool, total_cost_usd, total_sessions, total_input_tokens, total_output_tokens",
+        )
+        .eq("user_id", userId)
+        .gte("date", from)
+        .lte("date", to);
+      return data;
+    },
+    ["dashboard-range-rollup"],
+    { revalidate: 300, tags: [`user-rollup-${user.id}`] },
+  );
 
-  // Fetch active monthly budget
-  const { data: budget } = await supabase
-    .from("budgets")
-    .select("amount_usd")
-    .eq("user_id", user.id)
-    .eq("period", "monthly")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  // Recent raw records (last 20) -- kept on usage_records because rollups
-  // don't have project/model/session_id granularity needed for the table
-  const { data: recentRecords } = await supabase
-    .from("usage_records")
-    .select(
-      "recorded_at, tool, cost_usd, input_tokens, output_tokens, model, project, session_id",
-    )
-    .eq("user_id", user.id)
-    .order("recorded_at", { ascending: false })
-    .limit(20);
+  // Current month KPI, previous month KPI, range trend/tool data, active
+  // budget, and recent raw records all fetched concurrently.
+  const [
+    thisMonthRollup,
+    prevMonthRollup,
+    rangeRollup,
+    { data: budget },
+    { data: recentRecords },
+  ] = await Promise.all([
+    fetchThisMonthRollup(user.id, monthStart, monthEnd),
+    fetchPrevMonthRollup(user.id, prevMonthStart, prevMonthEnd),
+    fetchRangeRollup(user.id, sinceDate, todayDate),
+    // Fetch active monthly budget
+    supabase
+      .from("budgets")
+      .select("amount_usd")
+      .eq("user_id", user.id)
+      .eq("period", "monthly")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // Recent raw records (last 20) -- rollups lack project/model/session_id
+    supabase
+      .from("usage_records")
+      .select(
+        "recorded_at, tool, cost_usd, input_tokens, output_tokens, model, project, session_id",
+      )
+      .eq("user_id", user.id)
+      .order("recorded_at", { ascending: false })
+      .limit(20),
+  ]);
 
   // --- Compute KPI values from rollup data ---
   const totalSpendThisMonth =

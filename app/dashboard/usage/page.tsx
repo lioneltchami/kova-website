@@ -5,6 +5,7 @@ import {
   DateRangePicker,
   getDateRangeStart,
 } from "@/components/dashboard/date-range-picker";
+import { RealtimeUsageProvider } from "@/components/dashboard/realtime-usage-provider";
 import { UsageFilters } from "@/components/dashboard/usage-filters";
 import {
   type UsageRecord,
@@ -143,12 +144,16 @@ export default async function UsagePage({ searchParams }: UsagePageProps) {
             </div>
           }
         >
-          <UsageTable
-            records={typedRecords}
-            totalCount={count ?? 0}
-            page={page}
-            pageSize={PAGE_SIZE}
-          />
+          <RealtimeUsageProvider userId={user.id} initialRecords={typedRecords}>
+            {(liveRecords) => (
+              <UsageTable
+                records={liveRecords as UsageRecord[]}
+                totalCount={count ?? 0}
+                page={page}
+                pageSize={PAGE_SIZE}
+              />
+            )}
+          </RealtimeUsageProvider>
         </Suspense>
       </div>
     </div>

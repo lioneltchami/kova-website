@@ -122,7 +122,9 @@ function PriceDisplay({
   if (perSeatPrice === null) {
     return (
       <div className="mt-6 mb-2">
-        <span className="text-4xl font-bold text-white">Custom</span>
+        <span className="text-4xl font-bold text-gray-900 dark:text-white">
+          Custom
+        </span>
       </div>
     );
   }
@@ -130,8 +132,12 @@ function PriceDisplay({
   if (perSeatPrice === 0) {
     return (
       <div className="mt-6 mb-2">
-        <span className="text-4xl font-bold text-white">$0</span>
-        <span className="ml-1 text-sm text-kova-silver-dim">/ month</span>
+        <span className="text-4xl font-bold text-gray-900 dark:text-white">
+          $0
+        </span>
+        <span className="ml-1 text-sm text-gray-500 dark:text-kova-silver-dim">
+          / month
+        </span>
       </div>
     );
   }
@@ -146,8 +152,12 @@ function PriceDisplay({
   return (
     <div className="mt-6 mb-2">
       <div className="flex items-end gap-2 flex-wrap">
-        <span className="text-4xl font-bold text-white">${totalMonthly}</span>
-        <span className="mb-1 text-sm text-kova-silver-dim">/ month</span>
+        <span className="text-4xl font-bold text-gray-900 dark:text-white">
+          ${totalMonthly}
+        </span>
+        <span className="mb-1 text-sm text-gray-500 dark:text-kova-silver-dim">
+          / month
+        </span>
         {showSavings && (
           <span className="mb-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
             Save 20%
@@ -155,12 +165,12 @@ function PriceDisplay({
         )}
       </div>
       {seats > 1 && (
-        <p className="mt-0.5 text-xs text-kova-silver-dim">
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-kova-silver-dim">
           ${perSeatPrice}/seat &times; {seats} seats
         </p>
       )}
       {billing === "annual" && tier.annualTotal !== null && seats > 0 && (
-        <p className="mt-0.5 text-xs text-kova-silver-dim">
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-kova-silver-dim">
           Billed ${(tier.annualTotal * seats).toLocaleString()} annually
         </p>
       )}
@@ -177,11 +187,13 @@ function SeatSelector({
 }) {
   return (
     <div className="flex items-center gap-2 mt-3 mb-1">
-      <label className="text-xs text-kova-silver-dim">Seats</label>
+      <label className="text-xs text-gray-500 dark:text-kova-silver-dim">
+        Seats
+      </label>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onChange(Math.max(1, seats - 1))}
-          className="w-6 h-6 rounded border border-kova-border bg-kova-charcoal-light text-kova-silver text-sm font-bold hover:border-kova-blue transition-colors"
+          className="w-6 h-6 rounded border border-gray-200 dark:border-kova-border bg-gray-100 dark:bg-kova-charcoal-light text-gray-700 dark:text-kova-silver text-sm font-bold hover:border-kova-blue transition-colors"
         >
           -
         </button>
@@ -193,11 +205,11 @@ function SeatSelector({
           onChange={(e) =>
             onChange(Math.max(1, Math.min(500, parseInt(e.target.value) || 1)))
           }
-          className="w-12 text-center bg-kova-charcoal-light border border-kova-border rounded px-1 py-0.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-kova-blue"
+          className="w-12 text-center bg-gray-100 dark:bg-kova-charcoal-light border border-gray-200 dark:border-kova-border rounded px-1 py-0.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-kova-blue"
         />
         <button
           onClick={() => onChange(Math.min(500, seats + 1))}
-          className="w-6 h-6 rounded border border-kova-border bg-kova-charcoal-light text-kova-silver text-sm font-bold hover:border-kova-blue transition-colors"
+          className="w-6 h-6 rounded border border-gray-200 dark:border-kova-border bg-gray-100 dark:bg-kova-charcoal-light text-gray-700 dark:text-kova-silver text-sm font-bold hover:border-kova-blue transition-colors"
         >
           +
         </button>
@@ -227,16 +239,16 @@ function PricingCard({
   const isPrimary = !isFree;
 
   const ctaClassName = isPrimary
-    ? "mt-5 block w-full rounded-lg bg-kova-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-kova-blue-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal"
-    : "mt-5 block w-full rounded-lg border border-kova-border px-4 py-2.5 text-center text-sm font-semibold text-kova-silver transition-colors hover:border-kova-silver hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal";
+    ? "mt-5 block w-full rounded-lg bg-kova-blue px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-kova-blue-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-kova-charcoal"
+    : "mt-5 block w-full rounded-lg border border-gray-200 dark:border-kova-border px-4 py-2.5 text-center text-sm font-semibold text-gray-700 dark:text-kova-silver transition-colors hover:border-gray-400 dark:hover:border-kova-silver hover:text-gray-900 dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-kova-charcoal";
 
   return (
     <div
       className={[
-        "relative flex flex-col rounded-xl border bg-kova-surface p-6",
+        "relative flex flex-col rounded-xl border bg-gray-50 dark:bg-kova-surface p-6",
         tier.highlighted
           ? "border-kova-blue shadow-[0_0_30px_-4px_rgba(67,97,238,0.35)]"
-          : "border-kova-border",
+          : "border-gray-200 dark:border-kova-border",
       ].join(" ")}
     >
       {tier.badge && (
@@ -246,12 +258,16 @@ function PricingCard({
       )}
 
       <div>
-        <h3 className="text-base font-semibold text-white">{tier.name}</h3>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+          {tier.name}
+        </h3>
         <PriceDisplay tier={tier} billing={billing} seats={seats} />
         {tier.hasSeatSelector && (
           <SeatSelector seats={seats} onChange={onSeatsChange} />
         )}
-        <p className="text-sm text-kova-silver-dim mt-2">{tier.description}</p>
+        <p className="text-sm text-gray-500 dark:text-kova-silver-dim mt-2">
+          {tier.description}
+        </p>
       </div>
 
       <Link href={checkoutHref} className={ctaClassName}>
@@ -259,7 +275,7 @@ function PricingCard({
       </Link>
 
       {tier.slug === "enterprise" && (
-        <p className="mt-2 text-center text-xs text-kova-silver-dim">
+        <p className="mt-2 text-center text-xs text-gray-500 dark:text-kova-silver-dim">
           Contact us for custom enterprise agreements at{" "}
           <a
             href="mailto:enterprise@kova.dev"
@@ -270,7 +286,7 @@ function PricingCard({
         </p>
       )}
 
-      <ul className="mt-6 space-y-3 border-t border-kova-border pt-6">
+      <ul className="mt-6 space-y-3 border-t border-gray-200 dark:border-kova-border pt-6">
         {tier.features.map((feature) => (
           <li key={feature} className="flex items-start gap-2.5">
             <Check
@@ -278,7 +294,9 @@ function PricingCard({
               className="mt-0.5 shrink-0 text-emerald-400"
               aria-hidden="true"
             />
-            <span className="text-sm text-kova-silver">{feature}</span>
+            <span className="text-sm text-gray-700 dark:text-kova-silver">
+              {feature}
+            </span>
           </li>
         ))}
       </ul>
@@ -303,7 +321,7 @@ export default function PricingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-kova-charcoal">
+    <main className="min-h-screen bg-white dark:bg-kova-charcoal">
       <Navbar />
 
       <section className="px-4 pb-24 pt-32">
@@ -317,20 +335,20 @@ export default function PricingPage() {
             >
               Simple, Transparent Pricing
             </GradientHeading>
-            <p className="mx-auto mt-4 max-w-xl text-base text-kova-silver-dim">
+            <p className="mx-auto mt-4 max-w-xl text-base text-gray-500 dark:text-kova-silver-dim">
               Free forever for solo developers. Pro for teams that want full
               visibility into AI tool spend.
             </p>
 
             {/* Billing toggle */}
-            <div className="mt-8 inline-flex items-center gap-1 rounded-lg border border-kova-border bg-kova-surface p-1">
+            <div className="mt-8 inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-kova-border bg-gray-50 dark:bg-kova-surface p-1">
               <button
                 onClick={() => setBilling("monthly")}
                 className={[
-                  "rounded-md px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal",
+                  "rounded-md px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-kova-charcoal",
                   billing === "monthly"
                     ? "bg-kova-blue text-white"
-                    : "text-kova-silver-dim hover:text-kova-silver",
+                    : "text-gray-500 dark:text-kova-silver-dim hover:text-gray-700 dark:hover:text-kova-silver",
                 ].join(" ")}
               >
                 Monthly
@@ -338,10 +356,10 @@ export default function PricingPage() {
               <button
                 onClick={() => setBilling("annual")}
                 className={[
-                  "flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal",
+                  "flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-kova-charcoal",
                   billing === "annual"
                     ? "bg-kova-blue text-white"
-                    : "text-kova-silver-dim hover:text-kova-silver",
+                    : "text-gray-500 dark:text-kova-silver-dim hover:text-gray-700 dark:hover:text-kova-silver",
                 ].join(" ")}
               >
                 Annual
@@ -361,21 +379,33 @@ export default function PricingPage() {
 
           {/* Social proof banner */}
           <div className="text-center mb-12">
-            <p className="text-kova-silver-dim text-sm">
+            <p className="text-gray-500 dark:text-kova-silver-dim text-sm">
               Trusted by developer teams tracking their AI costs
             </p>
             <div className="flex justify-center gap-8 mt-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-kova-silver">5</p>
-                <p className="text-xs text-kova-silver-dim">AI Tools Tracked</p>
+                <p className="text-2xl font-bold text-gray-700 dark:text-kova-silver">
+                  5
+                </p>
+                <p className="text-xs text-gray-500 dark:text-kova-silver-dim">
+                  AI Tools Tracked
+                </p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-kova-silver">$0</p>
-                <p className="text-xs text-kova-silver-dim">To Get Started</p>
+                <p className="text-2xl font-bold text-gray-700 dark:text-kova-silver">
+                  $0
+                </p>
+                <p className="text-xs text-gray-500 dark:text-kova-silver-dim">
+                  To Get Started
+                </p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-kova-silver">100%</p>
-                <p className="text-xs text-kova-silver-dim">Cost Visibility</p>
+                <p className="text-2xl font-bold text-gray-700 dark:text-kova-silver">
+                  100%
+                </p>
+                <p className="text-xs text-gray-500 dark:text-kova-silver-dim">
+                  Cost Visibility
+                </p>
               </div>
             </div>
           </div>
@@ -394,14 +424,16 @@ export default function PricingPage() {
           </div>
 
           {/* Bottom note */}
-          <p className="mt-10 text-center text-xs text-kova-silver-dim">
+          <p className="mt-10 text-center text-xs text-gray-500 dark:text-kova-silver-dim">
             All prices in USD per seat. Annual plans billed yearly. Cancel
             anytime. Enterprise pricing scales linearly with seat count.
           </p>
 
           {/* Start Free CTA */}
           <div className="text-center py-8">
-            <p className="text-kova-silver-dim text-sm mb-3">Not sure yet?</p>
+            <p className="text-gray-500 dark:text-kova-silver-dim text-sm mb-3">
+              Not sure yet?
+            </p>
             <a
               href="/docs/getting-started/installation"
               className="text-kova-blue hover:text-kova-blue-light text-lg font-semibold transition-colors"
@@ -412,23 +444,23 @@ export default function PricingPage() {
 
           {/* FAQ */}
           <div className="mt-4 max-w-2xl mx-auto pb-8">
-            <h2 className="text-xl font-bold text-white text-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-6">
               Frequently Asked Questions
             </h2>
             <div className="space-y-2">
               {faqs.map((faq) => (
                 <details
                   key={faq.q}
-                  className="group rounded-xl border border-kova-border bg-kova-surface overflow-hidden"
+                  className="group rounded-xl border border-gray-200 dark:border-kova-border bg-gray-50 dark:bg-kova-surface overflow-hidden"
                 >
-                  <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer text-sm font-medium text-kova-silver hover:text-white transition-colors list-none select-none">
+                  <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer text-sm font-medium text-gray-700 dark:text-kova-silver hover:text-gray-900 dark:hover:text-white transition-colors list-none select-none">
                     <span>{faq.q}</span>
-                    <span className="shrink-0 text-kova-silver-dim text-lg leading-none group-open:rotate-45 transition-transform duration-200">
+                    <span className="shrink-0 text-gray-500 dark:text-kova-silver-dim text-lg leading-none group-open:rotate-45 transition-transform duration-200">
                       +
                     </span>
                   </summary>
                   <div className="px-5 pb-4">
-                    <p className="text-sm text-kova-silver-dim leading-relaxed">
+                    <p className="text-sm text-gray-500 dark:text-kova-silver-dim leading-relaxed">
                       {faq.a}
                     </p>
                   </div>

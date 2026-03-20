@@ -16,11 +16,14 @@
 }
 
 :root {
-  --background: #1a1a2e;
-  --foreground: #c0c0c8;
+  --background: #ffffff;
+  --foreground: #1a1a2e;
 }
 
 .dark {
+  --background: #1a1a2e;
+  --foreground: #c0c0c8;
+
   /* Fumadocs dark theme overrides for Kova palette */
   --color-fd-background: #1a1a2e;
   --color-fd-foreground: #c0c0c8;
@@ -41,6 +44,6 @@
 }
 
 body {
-  background-color: var(--color-kova-charcoal, #1a1a2e);
-  color: var(--color-kova-silver, #c0c0c8);
+  background-color: var(--background);
+  color: var(--foreground);
 }

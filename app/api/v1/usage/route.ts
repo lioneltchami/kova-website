@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit } from "./rate-limit-redis";
@@ -212,7 +213,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 8. Touch last_used_at on the API key (best-effort, non-fatal)
+  // 8. Invalidate the per-user rollup cache so the dashboard reflects new data
+  //    on the next page load without waiting for the 5-minute TTL to expire.
+  revalidateTag(`user-rollup-${userId}`, {});
+
+  // 9. Touch last_used_at on the API key (best-effort, non-fatal)
   //    The verify_api_key function already does this, so this is a no-op safety net
   //    in case the verify function is updated to skip the update.
   await admin
@@ -224,7 +229,7 @@ export async function POST(request: NextRequest) {
   const accepted: number = result?.[0]?.accepted ?? 0;
   const duplicates: number = result?.[0]?.duplicates ?? 0;
 
-  // 9. Trigger webhook deliveries for active endpoints subscribed to 'usage.synced'
+  // 10. Trigger webhook deliveries for active endpoints subscribed to 'usage.synced'
   //    Best-effort: errors here must not affect the upload response.
   if (teamId && accepted > 0) {
     void (async () => {

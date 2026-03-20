@@ -5,16 +5,16 @@ description: Set monthly spending limits and monitor alerts from the Kova dashbo
 
 # Budget Alerts
 
-Kova lets you set monthly spending budgets and warns you before you overspend. Alerts appear on the dashboard Budget page and in the CLI. Email and Slack notifications are planned for a future release.
+Kova lets you set monthly spending budgets and warns you before you overspend. Alerts appear on the dashboard Budget page and in the CLI. Budget alerts are delivered via terminal warnings, dashboard notifications, and email (Pro plan). Slack notifications can be configured in Dashboard > Settings > Integrations.
 
 A Pro plan is required to use budgets.
 
 ## Setting a Budget
 
-Use `kova budget` to create or update a monthly spending limit:
+Use `kova budget set` to create or update a monthly spending limit:
 
 ```bash
-kova budget --monthly 500
+kova budget set --amount 500 --period monthly
 ```
 
 ```
@@ -28,7 +28,7 @@ Budget set
 By default, Kova warns you when you reach 80% of your limit. Adjust the warning threshold with `--warn-at`:
 
 ```bash
-kova budget --monthly 500 --warn-at 70
+kova budget set --amount 500 --period monthly --warn-at 70
 ```
 
 This warns when spending reaches $350 (70% of $500).
@@ -38,7 +38,7 @@ This warns when spending reaches $350 (70% of $500).
 Set a budget scoped to a specific project:
 
 ```bash
-kova budget --monthly 100 --project api-rewrite
+kova budget set --amount 100 --period monthly --project api-rewrite
 ```
 
 Project budgets are tracked independently of your overall monthly limit.
@@ -92,22 +92,20 @@ Warning: overall budget at 85% ($425 / $500)
 
 ## Notification Channels
 
-Currently, alerts are visible in the dashboard and CLI only.
-
-Email and Slack notifications are planned and will be available in a future release. To stay informed, watch the [changelog](https://kova.dev/changelog).
+Budget alerts are delivered via terminal warnings, dashboard notifications, and email (Pro plan). Slack notifications can be configured in Dashboard > Settings > Integrations.
 
 ## Resetting or Removing a Budget
 
 Remove a budget by setting its limit to zero:
 
 ```bash
-kova budget --monthly 0
+kova budget set --amount 0 --period monthly
 ```
 
 Or remove a project budget:
 
 ```bash
-kova budget --monthly 0 --project api-rewrite
+kova budget set --amount 0 --period monthly --project api-rewrite
 ```
 
 ## Related

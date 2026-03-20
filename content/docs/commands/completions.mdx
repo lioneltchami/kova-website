@@ -5,7 +5,7 @@ description: Install tab completions for bash, zsh, or fish to speed up Kova com
 
 # kova completions
 
-Generate and install shell tab completions for Kova. After installation, pressing `Tab` after `kova` will show available commands, and pressing `Tab` after a flag like `--template` will show valid options.
+Generate and install shell tab completions for Kova. After installation, pressing `Tab` after `kova` will show available commands, and pressing `Tab` after a flag will show valid options.
 
 ## Usage
 
@@ -90,39 +90,34 @@ After installation, Tab completion works for commands, flags, and flag values:
 
 ```bash
 kova <Tab>
-# build   completions   config   init   plan   pr   run   status   team-build   update
+# account   audit   budget   ci-report   compare   completions   config   costs
+# dashboard   data-export   init   login   logout   policy   report   sso   sync   tag   track
 ```
 
 ### Flags
 
 ```bash
-kova build --<Tab>
-# --dry-run   --live   --model-override   --no-validate   --parallel   --resume   --verbose
+kova track --<Tab>
+# --auto-sync   --daemon   --since   --tool
 
-kova plan --<Tab>
-# --auto-build   --issue   --model   --no-branch   --output   --template
+kova costs --<Tab>
+# --month   --since   --today   --tool   --week
 
-kova init --<Tab>
-# --dry-run   --force   --merge   --no-detect   --preset
+kova sync --<Tab>
+# --dry-run   --since
 
 kova config <Tab>
-# add-boundary   add-rule   set
+# get   set
 ```
 
 ### Flag Values
 
 ```bash
-kova plan --template <Tab>
-# bugfix   feature   migration   performance   refactor   security
+kova track --tool <Tab>
+# aider   amazon_q   bolt   claude_code   cline   continue_dev   copilot   cursor   devin   lovable   windsurf
 
-kova plan --model <Tab>
-# haiku   opus   sonnet
-
-kova build --model-override <Tab>
-# haiku   opus   sonnet
-
-kova init --preset <Tab>
-# django   expo   express   nextjs   node   react
+kova costs --tool <Tab>
+# aider   amazon_q   bolt   claude-code   cline   continue-dev   copilot   cursor   devin   lovable   windsurf
 ```
 
 ## Verifying Installation
@@ -154,10 +149,8 @@ kova completions zsh > "${fpath[1]}/_kova" && rm -f ~/.zcompdump && compinit
 kova completions fish > ~/.config/fish/completions/kova.fish
 ```
 
-Or simply run `kova init --merge` in your project after upgrading -- it will refresh the completions script.
-
 ## Related
 
 - [Installation](/docs/getting-started/installation) - Install Kova CLI globally
 - [kova init](/docs/commands/init) - Initialize Kova in your project
-- [Quick Start](/docs/getting-started/quickstart) - First build walkthrough
+- [Quick Start](/docs/getting-started/quickstart) - First cost tracking walkthrough

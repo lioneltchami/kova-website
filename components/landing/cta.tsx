@@ -18,7 +18,7 @@ function CopyInstallButton() {
   return (
     <button
       onClick={handleCopy}
-      className="relative inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-kova-blue to-kova-blue-light text-white font-semibold text-sm hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-kova-charcoal"
+      className="relative inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-kova-blue to-kova-blue-light text-white font-semibold text-sm hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-kova-charcoal"
     >
       {copied ? (
         <>
@@ -73,7 +73,7 @@ export function CTA() {
         />
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-kova-charcoal/60 to-kova-charcoal" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/60 dark:via-kova-charcoal/60 to-white dark:to-kova-charcoal" />
 
       <div className="relative z-10 mx-auto max-w-3xl text-center">
         <GradientHeading
@@ -84,7 +84,7 @@ export function CTA() {
           Join the Pack
         </GradientHeading>
 
-        <p className="mb-10 text-lg text-kova-silver">
+        <p className="mb-10 text-lg text-gray-700 dark:text-kova-silver">
           Open source. Free forever. Ship faster.
         </p>
 

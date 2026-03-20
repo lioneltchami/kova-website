@@ -99,7 +99,7 @@ Post a cost summary as a pull request comment using the JSON output:
     script: |
       const report = require('./kova-report.json')
       const cost = report.total_cost_usd.toFixed(2)
-      const sessions = report.sessions
+      const sessions = report.total_sessions
       const tools = report.by_tool.map(t => `${t.tool}: $${t.cost_usd.toFixed(2)}`).join(', ')
       const body = `## AI Cost Report (Last 30 Days)\n\n**Total:** $${cost} across ${sessions} sessions\n\n${tools}`
       github.rest.issues.createComment({

@@ -19,7 +19,7 @@ Running `kova config` without a subcommand displays the current configuration.
 
 | Subcommand                      | Description                                   |
 | ------------------------------- | --------------------------------------------- |
-| `kova config`                   | Display current configuration as YAML         |
+| `kova config`                   | Display current configuration as JSON         |
 | `kova config set <key> <value>` | Set a configuration value by dot-notation key |
 | `kova config get <key>`         | Print the value of a single key               |
 
@@ -33,35 +33,34 @@ kova config
 
 Output:
 
-```yaml
-version: 1
-
-auth:
-  api_key: kova_xxxx...
-
-collectors:
-  claude_code:
-    enabled: true
-  cursor:
-    enabled: true
-    db_path: null
-  copilot:
-    enabled: false
-    monthly_cost: 19.00
-  windsurf:
-    enabled: false
-    api_key: null
-  devin:
-    enabled: false
-    api_key: null
-
-sync:
-  auto_sync: false
-  upload_since_days: 7
-
-display:
-  currency: USD
-  timezone: local
+```json
+{
+  "version": 1,
+  "auth": {
+    "api_key": "kova_xxxx..."
+  },
+  "collectors": {
+    "claude_code": { "enabled": true },
+    "cursor": { "enabled": true, "db_path": null },
+    "copilot": { "enabled": false, "monthly_cost": 19.00 },
+    "windsurf": { "enabled": false, "api_key": null },
+    "devin": { "enabled": false, "api_key": null },
+    "aider": { "enabled": false },
+    "continue_dev": { "enabled": false },
+    "cline": { "enabled": false },
+    "amazon_q": { "enabled": false },
+    "bolt": { "enabled": false, "monthly_cost": 20.00 },
+    "lovable": { "enabled": false, "monthly_cost": 25.00 }
+  },
+  "sync": {
+    "auto_sync": false,
+    "upload_since_days": 7
+  },
+  "display": {
+    "currency": "USD",
+    "timezone": "local"
+  }
+}
 ```
 
 ### Enable a Collector
@@ -70,13 +69,23 @@ display:
 kova config set collectors.cursor.enabled true
 kova config set collectors.windsurf.enabled true
 kova config set collectors.windsurf.api_key "cwk_your_api_key"
+kova config set collectors.aider.enabled true
+kova config set collectors.continue_dev.enabled true
+kova config set collectors.cline.enabled true
+kova config set collectors.amazon_q.enabled true
 ```
 
-### Configure Copilot Flat-Rate Cost
+### Configure Flat-Rate Tool Costs
 
 ```bash
 kova config set collectors.copilot.enabled true
 kova config set collectors.copilot.monthly_cost 19.00
+
+kova config set collectors.bolt.enabled true
+kova config set collectors.bolt.monthly_cost 20.00
+
+kova config set collectors.lovable.enabled true
+kova config set collectors.lovable.monthly_cost 25.00
 ```
 
 ### Set Notification Webhooks
@@ -121,6 +130,14 @@ Common dot-notation keys for `kova config set`:
 | `collectors.windsurf.api_key`     | string  | `cwk_...`                     |
 | `collectors.devin.enabled`        | boolean | `true`                        |
 | `collectors.devin.api_key`        | string  | `dv_...`                      |
+| `collectors.aider.enabled`        | boolean | `true`                        |
+| `collectors.continue_dev.enabled` | boolean | `true`                        |
+| `collectors.cline.enabled`        | boolean | `true`                        |
+| `collectors.amazon_q.enabled`     | boolean | `true`                        |
+| `collectors.bolt.enabled`         | boolean | `true`                        |
+| `collectors.bolt.monthly_cost`    | number  | `20.00`                       |
+| `collectors.lovable.enabled`      | boolean | `true`                        |
+| `collectors.lovable.monthly_cost` | number  | `25.00`                       |
 | `sync.auto_sync`                  | boolean | `false`                       |
 | `sync.upload_since_days`          | number  | `30`                          |
 | `notifications.budget_warn.slack` | string  | `https://hooks.slack.com/...` |
@@ -129,7 +146,7 @@ Common dot-notation keys for `kova config set`:
 
 ## Configuration File Location
 
-`kova config` reads and writes `~/.kova/config.yaml`. This is a global user config, not a per-project file. Settings apply to all projects on this machine.
+`kova config` reads and writes `~/.kova/config.json`. This is a global user config, not a per-project file. Settings apply to all projects on this machine.
 
 ## Related
 

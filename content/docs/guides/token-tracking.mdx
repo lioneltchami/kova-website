@@ -1,205 +1,129 @@
 ---
 title: Token Tracking
-description: Monitor Claude token usage with per-task breakdowns, session budget warnings, and cost estimates
+description: How Kova captures per-session token counts and lets you analyze token consumption across AI tools
 ---
 
 # Token Tracking
 
-Kova tracks token consumption at the task level and across the entire build session. Every completed task shows how many tokens it used. At the end of a build, you get a full breakdown by task, model, input vs. output, and estimated cost. Budget warnings prevent runaway spending before it happens.
+Kova collectors capture input and output token counts from each AI tool session. These token records power the cost calculations in `kova costs`, the analytics charts in the dashboard, and any custom queries you run with `--group-by`.
 
-## How Tracking Works
+## How Collectors Capture Token Counts
 
-Claude Code does not expose a real-time token API. Kova tracks usage by parsing the JSONL session files that Claude Code writes locally after each agent invocation. Each record includes input tokens, output tokens, cache reads, and cache creation tokens:
+Each collector reads token data from the tool's own local data files:
+
+- **Claude Code**: Parses JSONL session files written by the Claude Code CLI. Each record includes `input_tokens`, `output_tokens`, `cache_read_input_tokens`, and `cache_creation_input_tokens`.
+- **Cursor**: Reads from Cursor's local SQLite database, which records per-session token counts for API requests routed through Cursor's proxy.
+- **Windsurf**: Polls the Windsurf usage API. Token counts are returned per Cascade session.
+- **Copilot, Aider, Continue.dev, Cline, Amazon Q, Bolt, Lovable**: These tools use flat-rate or activity-based pricing. Where per-session token counts are not available, Kova records session duration and request counts and estimates token equivalents from known model characteristics.
+
+A raw usage record in `~/.kova/usage.json` looks like this:
 
 ```json
 {
-  "modelUsage": {
-    "inputTokens": 12500,
-    "outputTokens": 3200,
-    "cacheReadInputTokens": 8000,
-    "cacheCreationInputTokens": 1500
-  },
-  "totalCostUSD": 0.042
+  "id": "evt_abc123",
+  "tool": "claude-code",
+  "timestamp": "2026-03-19T14:00:00Z",
+  "session_id": "sess_abc123",
+  "model": "claude-sonnet-4-5",
+  "input_tokens": 12000,
+  "output_tokens": 3200,
+  "cost_usd": 0.084
 }
 ```
 
-Kova sums these values per task and persists the running total in the checkpoint file so token counts survive build interruptions and are accurate on `--resume`.
+## Viewing Token Breakdowns with kova costs
 
-## Per-Task Display Format
-
-After each task completes, Kova prints a token summary line:
-
-```
-[done]  build-upload-api    backend-engineer    sonnet    2m 18s
-        Tokens: 18,420 input + 4,210 output = 22,630 total
-        Session: 45,280 / 88,000 used (51.5%)  |  42,720 remaining
-        Est. cost: $0.08 this task  |  $0.19 total build
-```
-
-The session percentage is calculated against your plan's 5-hour window allocation (see Plan Types below). The remaining count lets you estimate whether the build will fit within the current window.
-
-Disable per-task output without disabling tracking:
-
-```yaml
-usage_tracking:
-  show_per_task: false
-  show_build_summary: true # summary still appears at the end
-```
-
-## Build Summary Format
-
-At the end of every build, Kova prints a full token summary table:
-
-```
-Build Complete: user-profile-editing.md
-
-  Tasks: 7/7 passed
-  Duration: 4m 22s
-
-  Token Usage:
-  ┌──────────────────────────┬─────────┬──────────┬─────────┐
-  │ Task                     │ Input   │ Output   │ Total   │
-  ├──────────────────────────┼─────────┼──────────┼─────────┤
-  │ setup-storage-bucket     │ 8,200   │ 2,100    │ 10,300  │
-  │ build-upload-api         │ 18,420  │ 4,210    │ 22,630  │
-  │ build-profile-form       │ 15,800  │ 3,600    │ 19,400  │
-  │ build-avatar-component   │ 12,300  │ 2,800    │ 15,100  │
-  │ update-navigation        │ 5,400   │ 1,200    │ 6,600   │
-  │ integration-tests        │ 14,200  │ 3,100    │ 17,300  │
-  │ quality-validation       │ 11,600  │ 2,400    │ 14,000  │
-  ├──────────────────────────┼─────────┼──────────┼─────────┤
-  │ TOTAL                    │ 85,920  │ 19,410   │ 105,330 │
-  └──────────────────────────┴─────────┴──────────┴─────────┘
-
-  Session Budget:
-    Plan: Max 5x  (88,000 tokens / 5-hour window)
-    Used this build: 105,330 tokens
-    Window status: Rolling (started 1h 12m ago, resets in ~3h 48m)
-    Weekly cap: 62% consumed
-
-  Cost Estimate: $0.34 total
-    Savings from model tiering: $0.82  (haiku for 2 tasks saved ~$0.48 vs all-sonnet)
-
-  Next build budget: ~42,670 tokens available
-```
-
-## Budget Warning Thresholds
-
-Two thresholds trigger warnings during a build. Both are configurable.
-
-**80% warning** -- Kova prints a warning but continues automatically:
-
-```
-  WARNING: Session budget at 82% (72,160 / 88,000 tokens used)
-  Remaining tasks: 2 (est. ~25,000 tokens)
-  This build may exceed your 5-hour window limit.
-```
-
-**95% pause** -- Kova stops and waits for confirmation before continuing:
-
-```
-  PAUSED: Session budget at 96% (84,480 / 88,000 tokens used)
-  Remaining tasks: 1 (est. ~12,000 tokens)
-
-  Options:
-    [C] Continue anyway
-    [P] Pause and resume later  (checkpoint saved)
-    [S] Switch remaining tasks to haiku to save tokens
-```
-
-If you choose P, the checkpoint is saved immediately. Run `kova build --resume` when your 5-hour window has refreshed.
-
-If you choose S, Kova rewrites the remaining task model assignments to `haiku` in the checkpoint and continues. This saves roughly 80-90% of the token cost for those tasks at a quality tradeoff.
-
-## Plan Types and Window Allocations
-
-Claude Code uses a rolling 5-hour window, not a fixed reset. Tokens consumed 5 hours ago become available again continuously. There is no single "reset time" to wait for.
-
-| Plan                | 5-hour window allocation | Weekly cap             |
-| ------------------- | ------------------------ | ---------------------- |
-| Pro (~$20/mo)       | 44,000 tokens            | Moderate               |
-| Max 5x (~$80/mo)    | 88,000 tokens            | High                   |
-| Max 20x (~$320/mo)  | 220,000 tokens           | 40 Opus hours          |
-| API (pay-per-token) | Unlimited                | None (billed directly) |
-
-These allocations are approximate. Claude Code does not publish exact numbers, and they can change. Kova uses the values from `PLAN_ALLOCATIONS` in its constants, which are updated with each release.
-
-Configure your plan type so Kova calculates percentages correctly:
-
-```yaml
-usage_tracking:
-  plan: "max5" # pro | max5 | max20 | api
-```
-
-If you use `api`, Kova tracks tokens and costs but does not enforce a budget limit. The `warn_at_percent` and `pause_at_percent` settings are ignored for API plan users.
-
-## Token Cost Rates
-
-Kova uses these per-model rates to estimate cost (approximate 2026 pricing):
-
-| Model  | Input per 1M tokens | Output per 1M tokens |
-| ------ | ------------------- | -------------------- |
-| haiku  | $0.25               | $1.25                |
-| sonnet | $3.00               | $15.00               |
-| opus   | $15.00              | $75.00               |
-
-Cost estimates in Kova output are labeled "Est." because exact pricing depends on your Anthropic plan, regional pricing, cache hit rates, and any promotional pricing applied to your account. Treat estimates as directional, not exact.
-
-## kova.yaml Configuration
-
-The full `usage_tracking` section with all defaults:
-
-```yaml
-usage_tracking:
-  enabled: true # set false to disable all token tracking
-  plan: "max5" # pro | max5 | max20 | api
-  show_per_task: true # show token line after each completed task
-  show_build_summary: true # show full table at build end
-  show_cost_estimate: true # include cost lines in output
-  warn_at_percent: 80 # print warning at this session percentage
-  pause_at_percent: 95 # pause and prompt at this session percentage
-```
-
-To track tokens without showing them during the build (useful in CI):
-
-```yaml
-usage_tracking:
-  enabled: true
-  show_per_task: false
-  show_build_summary: false # summary still written to checkpoint file
-```
-
-Token data is always written to the checkpoint file regardless of display settings. `kova status` can show it at any time.
-
-## Viewing Token Usage After a Build
+The `kova costs` command displays token counts alongside cost figures in its default table output:
 
 ```bash
-kova status
-# Token usage: 105,330 used  (119.7% of 88,000 window -- exceeded)
-# Est. cost: $0.34
-# Next window available in: ~2h 43m
-
-kova status --json
-# { "token_usage": { "total_combined": 105330, "cost_estimate_usd": 0.34, ... } }
+kova costs
 ```
 
-## Token Persistence Across Resumes
-
-When a build is interrupted and resumed with `kova build --resume`, token counts from completed tasks carry forward:
-
 ```
-Resuming build: user-profile-editing
-Tokens from previous session: 45,280
-Current session: 0
-Combined total: 45,280 / 88,000 (51.5%)
+AI Tool Costs -- March 2026
+───────────────────────────────────────────────────────────
+Tool            Cost        Sessions   Tokens (in/out)
+claude-code     $42.18      94         1.2M / 384K
+cursor          $18.40      312        820K / 210K
+copilot         $5.17       --         flat-rate ($19/mo)
+windsurf        $3.40       28         95K / 42K
+───────────────────────────────────────────────────────────
+Total           $69.15      434+
 ```
 
-This means your budget warning thresholds account for all tokens spent on this plan, including those from previous sessions. A build that spans two sessions still respects the single-session window limit.
+To see token counts grouped by model:
+
+```bash
+kova costs --group-by model --since this-month
+```
+
+To see token totals by day:
+
+```bash
+kova costs --group-by day --since 14d
+```
+
+To see token consumption for a single tool:
+
+```bash
+kova costs --tool claude-code --since 30d
+```
+
+## Token Cost Rates by Model
+
+Kova uses the following per-model rates to calculate cost from token counts (approximate 2026 pricing):
+
+| Model                 | Input per 1M tokens | Output per 1M tokens |
+| --------------------- | ------------------- | -------------------- |
+| claude-haiku-3-5      | $0.80               | $4.00                |
+| claude-sonnet-4-5     | $3.00               | $15.00               |
+| claude-opus-4         | $15.00              | $75.00               |
+| gpt-4o                | $2.50               | $10.00               |
+| gpt-4o-mini           | $0.15               | $0.60                |
+
+Cost estimates are labeled approximate because exact pricing depends on your plan, regional pricing, cache hit rates, and any promotional pricing applied to your account. For the most current rates, see each provider's pricing page.
+
+For tools with flat-rate subscriptions (Copilot, Bolt, Lovable), Kova amortizes your configured `monthly_cost` across active days rather than computing from token counts.
+
+## Analyzing Token Consumption Patterns
+
+The `--group-by` flag lets you slice token data along several dimensions:
+
+```bash
+# Which tool consumes the most tokens?
+kova costs --group-by tool
+
+# Which project drives the most token usage?
+kova costs --group-by project --since this-month
+
+# How does daily token consumption vary?
+kova costs --group-by day --since 30d
+
+# Which model accounts for the most spend?
+kova costs --group-by model
+```
+
+Export the data for further analysis:
+
+```bash
+kova costs --format json --group-by model --since this-month > tokens-by-model.json
+kova costs --format csv --group-by day --since 30d > daily-tokens.csv
+```
+
+## Token Data in the Dashboard
+
+The Kova web dashboard at [kova.dev/dashboard](https://kova.dev/dashboard) surfaces token data in the Analytics section:
+
+- **Token Trend**: Daily input and output token counts plotted over time, filterable by tool and project.
+- **Model Breakdown**: Pie chart of token consumption and cost contribution by model.
+- **Top Sessions**: Highest-token sessions ranked by total tokens, with drill-down to see the full session record.
+- **Tool Comparison**: Side-by-side token and cost metrics for all enabled collectors.
+
+Token data syncs to the dashboard whenever you run `kova sync`. The dashboard reflects your most recent sync.
 
 ## Related
 
-- [Model Tiering](/docs/guides/model-tiering) - Reduce costs with automatic model selection
-- [Checkpoint Recovery](/docs/guides/checkpoint-recovery) - How token usage persists across interruptions
-- [kova status](/docs/commands/status) - Check live token usage
-- [kova.yaml Reference](/docs/reference/kova-yaml) - Full configuration schema
-- [Checkpoint Format](/docs/reference/checkpoint-format) - Token fields in the checkpoint file
+- [kova costs](/docs/commands/costs) - View cost and token breakdowns in the terminal
+- [kova track](/docs/commands/track) - Collect token data from your AI tools
+- [kova sync](/docs/commands/sync) - Upload token records to the cloud dashboard
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Configure collectors for all 11 tools

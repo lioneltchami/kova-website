@@ -7,48 +7,48 @@ description: Configure Kova collectors, budgets, sync settings, and notification
 
 Kova uses two configuration files:
 
-- `~/.kova/config.yaml` -- global user config (collectors, auth, sync preferences)
-- `~/.kova/budgets.yaml` -- budget definitions (managed by `kova budget` commands)
+- `~/.kova/config.json` -- global user config (collectors, auth, sync preferences)
+- `~/.kova/budgets.json` -- budget definitions (managed by `kova budget` commands)
 
 You rarely need to edit these files by hand. Use `kova config set` and `kova budget set` to make changes, or edit them in your text editor of choice.
 
 ## Global Config Overview
 
-```yaml
-version: 1
-
-auth:
-  api_key: kova_xxxx... # Set by kova login
-
-collectors:
-  claude_code:
-    enabled: true
-  cursor:
-    enabled: false
-    db_path: null # Auto-detected on macOS and Linux
-  copilot:
-    enabled: false
-    monthly_cost: 19.00 # Your flat-rate Copilot subscription cost
-  windsurf:
-    enabled: false
-    api_key: null
-  devin:
-    enabled: false
-    api_key: null
-
-sync:
-  auto_sync: false # Run sync automatically after each kova track call
-  sync_interval_hours: 24 # For scheduled/background sync (if auto_sync is true)
-  upload_since_days: 7 # Default lookback window for kova sync
-
-notifications:
-  budget_warn:
-    slack: null # Slack webhook URL for budget alerts
-    discord: null # Discord webhook URL for budget alerts
-
-display:
-  currency: USD
-  timezone: local # Timezone for date grouping (e.g. "America/New_York")
+```json
+{
+  "version": 1,
+  "auth": {
+    "api_key": "kova_xxxx..."
+  },
+  "collectors": {
+    "claude_code": { "enabled": true },
+    "cursor": { "enabled": false, "db_path": null },
+    "copilot": { "enabled": false, "monthly_cost": 19.00 },
+    "windsurf": { "enabled": false, "api_key": null },
+    "devin": { "enabled": false, "api_key": null },
+    "aider": { "enabled": false },
+    "continue_dev": { "enabled": false },
+    "cline": { "enabled": false },
+    "amazon_q": { "enabled": false },
+    "bolt": { "enabled": false, "monthly_cost": 20.00 },
+    "lovable": { "enabled": false, "monthly_cost": 25.00 }
+  },
+  "sync": {
+    "auto_sync": false,
+    "sync_interval_hours": 24,
+    "upload_since_days": 7
+  },
+  "notifications": {
+    "budget_warn": {
+      "slack": null,
+      "discord": null
+    }
+  },
+  "display": {
+    "currency": "USD",
+    "timezone": "local"
+  }
+}
 ```
 
 ## Section Reference
@@ -65,17 +65,25 @@ Set automatically by `kova login`. Do not edit manually.
 
 Controls which AI tools Kova collects usage data from. See [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) for step-by-step instructions per tool.
 
-| Field                  | Type    | Description                                    |
-| ---------------------- | ------- | ---------------------------------------------- |
-| `claude_code.enabled`  | boolean | Enable Claude Code tracking (default: true)    |
-| `cursor.enabled`       | boolean | Enable Cursor tracking                         |
-| `cursor.db_path`       | string  | Override auto-detected Cursor data path        |
-| `copilot.enabled`      | boolean | Enable GitHub Copilot tracking                 |
-| `copilot.monthly_cost` | number  | Your Copilot subscription cost per seat in USD |
-| `windsurf.enabled`     | boolean | Enable Windsurf tracking                       |
-| `windsurf.api_key`     | string  | Windsurf API key for usage polling             |
-| `devin.enabled`        | boolean | Enable Devin tracking                          |
-| `devin.api_key`        | string  | Devin read-only API key                        |
+| Field                     | Type    | Description                                        |
+| ------------------------- | ------- | -------------------------------------------------- |
+| `claude_code.enabled`     | boolean | Enable Claude Code tracking (default: true)        |
+| `cursor.enabled`          | boolean | Enable Cursor tracking                             |
+| `cursor.db_path`          | string  | Override auto-detected Cursor data path            |
+| `copilot.enabled`         | boolean | Enable GitHub Copilot tracking                     |
+| `copilot.monthly_cost`    | number  | Your Copilot subscription cost per seat in USD     |
+| `windsurf.enabled`        | boolean | Enable Windsurf tracking                           |
+| `windsurf.api_key`        | string  | Windsurf API key for usage polling                 |
+| `devin.enabled`           | boolean | Enable Devin tracking                              |
+| `devin.api_key`           | string  | Devin read-only API key                            |
+| `aider.enabled`           | boolean | Enable Aider tracking                              |
+| `continue_dev.enabled`    | boolean | Enable Continue.dev tracking                       |
+| `cline.enabled`           | boolean | Enable Cline tracking                              |
+| `amazon_q.enabled`        | boolean | Enable Amazon Q tracking                           |
+| `bolt.enabled`            | boolean | Enable Bolt tracking                               |
+| `bolt.monthly_cost`       | number  | Your Bolt subscription cost per seat in USD        |
+| `lovable.enabled`         | boolean | Enable Lovable tracking                            |
+| `lovable.monthly_cost`    | number  | Your Lovable subscription cost per seat in USD     |
 
 ### sync
 
@@ -91,18 +99,22 @@ Controls how and when records are uploaded to the cloud.
 
 Webhook URLs for budget alert notifications. Alerts fire when your spend crosses a `warn_at` threshold defined in a budget.
 
-```yaml
-notifications:
-  budget_warn:
-    slack: "https://hooks.slack.com/services/TEAM/CHANNEL/TOKEN"
-    discord: "https://discord.com/api/webhooks/ID/TOKEN"
+```json
+{
+  "notifications": {
+    "budget_warn": {
+      "slack": "https://hooks.slack.com/services/TEAM/CHANNEL/TOKEN",
+      "discord": "https://discord.com/api/webhooks/ID/TOKEN"
+    }
+  }
+}
 ```
 
 ### display
 
 | Field      | Type   | Default | Description                                      |
 | ---------- | ------ | ------- | ------------------------------------------------ |
-| `currency` | string | `USD`   | Display currency (USD only in v0.3)              |
+| `currency` | string | `USD`   | Display currency (USD)                           |
 | `timezone` | string | local   | Timezone used for daily grouping in `kova costs` |
 
 ## Common Configuration Tasks
@@ -113,6 +125,10 @@ notifications:
 kova config set collectors.cursor.enabled true
 kova config set collectors.copilot.enabled true
 kova config set collectors.copilot.monthly_cost 19.00
+kova config set collectors.aider.enabled true
+kova config set collectors.continue_dev.enabled true
+kova config set collectors.cline.enabled true
+kova config set collectors.amazon_q.enabled true
 ```
 
 ### Set a Slack Alert Channel

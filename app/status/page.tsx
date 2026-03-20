@@ -143,17 +143,17 @@ export default async function StatusPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white text-slate-800">
+    <div className="min-h-screen bg-white dark:bg-kova-charcoal text-slate-800 dark:text-kova-silver">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
+      <header className="border-b border-slate-200 dark:border-kova-border bg-white dark:bg-kova-charcoal sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <WolfLogo size={22} />
-            <span className="text-sm font-bold tracking-widest text-slate-900 uppercase">
+            <span className="text-sm font-bold tracking-widest text-slate-900 dark:text-kova-silver uppercase">
               Kova
             </span>
           </Link>
-          <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          <span className="text-xs text-slate-500 dark:text-kova-silver-dim font-medium uppercase tracking-wider">
             System Status
           </span>
         </div>
@@ -174,8 +174,8 @@ export default async function StatusPage() {
 
         {/* Incident banner */}
         {anyIncidentInLastHour && overall !== "healthy" && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 px-6 py-4 mb-8">
-            <p className="text-sm font-medium text-amber-800">
+          <div className="rounded-xl border border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-900/20 px-6 py-4 mb-8">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-400">
               One or more components reported issues in the past hour. Our team
               is investigating.
             </p>
@@ -183,7 +183,7 @@ export default async function StatusPage() {
         )}
 
         {/* Component grid */}
-        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">
+        <h2 className="text-xs font-semibold text-slate-400 dark:text-kova-silver-dim uppercase tracking-widest mb-4">
           Components
         </h2>
 
@@ -193,24 +193,28 @@ export default async function StatusPage() {
             return (
               <div
                 key={key}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-5"
+                className="rounded-xl border border-slate-200 dark:border-kova-border bg-slate-50 dark:bg-kova-surface p-5"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <p className="text-sm font-semibold text-slate-800">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-kova-silver">
                     {label}
                   </p>
                   <StatusIndicator status={summary.latestStatus} />
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Uptime (24h)</span>
-                    <span className="text-xs font-mono font-semibold text-slate-700">
+                    <span className="text-xs text-slate-500 dark:text-kova-silver-dim">
+                      Uptime (24h)
+                    </span>
+                    <span className="text-xs font-mono font-semibold text-slate-700 dark:text-kova-silver">
                       {summary.uptimePercent}%
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Last check</span>
-                    <span className="text-xs font-mono text-slate-600">
+                    <span className="text-xs text-slate-500 dark:text-kova-silver-dim">
+                      Last check
+                    </span>
+                    <span className="text-xs font-mono text-slate-600 dark:text-kova-silver-dim">
                       {formatChecked(summary.latestCheck)}
                     </span>
                   </div>
@@ -221,11 +225,11 @@ export default async function StatusPage() {
         </div>
 
         {/* Footer note */}
-        <p className="text-xs text-slate-400 text-center">
+        <p className="text-xs text-slate-400 dark:text-kova-silver-dim text-center">
           Updated every 60 seconds. For incidents, contact{" "}
           <a
             href="mailto:support@kova.dev"
-            className="underline hover:text-slate-600"
+            className="underline hover:text-slate-600 dark:hover:text-kova-silver"
           >
             support@kova.dev
           </a>

@@ -67,6 +67,7 @@ export async function PATCH(request: NextRequest) {
     "weekly_digest",
     "budget_alerts",
     "slack_enabled",
+    "weekly_reports_enabled",
   ]);
   const unknownKeys = Object.keys(body).filter((k) => !allowedKeys.has(k));
   if (unknownKeys.length > 0) {

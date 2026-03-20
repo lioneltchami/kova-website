@@ -58,6 +58,18 @@ All endpoints return JSON. Successful responses include a `data` key. Errors inc
 | 429  | Too Many Requests -- see [Rate Limits](/docs/api/rate-limits) |
 | 500  | Internal Server Error                                         |
 
+## API v2
+
+An API v2 is available at `/api/v2/` with additional endpoints for advanced use cases:
+
+- Usage rollup (aggregate queries)
+- Cost centers
+- Webhooks
+- Audit log
+- Admin operations
+
+The v2 API is fully documented via the OpenAPI spec at [`/api/v2/openapi.json`](https://kova.dev/api/v2/openapi.json). The v1 API documented above remains the primary supported API and is sufficient for most integrations.
+
 ## Related
 
 - [Usage Endpoint](/docs/api/usage) - Upload and export usage records

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 import { AnalyticsCharts } from "@/components/dashboard/analytics-charts";
 import { AnomalyChart } from "@/components/dashboard/anomaly-chart";
@@ -42,28 +43,39 @@ export default async function AnalyticsPage({
   const now = new Date();
   const todayDate = now.toISOString().slice(0, 10);
 
-  // Fetch usage records for project-level aggregations (rollups don't track
-  // project). Limit to 1000 to prevent unbounded scans.
-  const { data: records } = await supabase
-    .from("usage_records")
-    .select(
-      "recorded_at, tool, model, project, input_tokens, output_tokens, cost_usd, user_id, session_id",
-    )
-    .eq("user_id", user.id)
-    .gte("recorded_at", since.toISOString())
-    .order("recorded_at", { ascending: true })
-    .limit(1000);
+  // Wrap the rollup query in a 5-minute cache keyed per user + date range.
+  // Records are invalidated when the usage upload API calls revalidateTag.
+  const fetchRollups = unstable_cache(
+    async (userId: string, fromDate: string, toDate: string) => {
+      const { data } = await supabase
+        .from("usage_daily_rollups")
+        .select(
+          "date, tool, model, total_sessions, total_input_tokens, total_output_tokens, total_cost_usd",
+        )
+        .eq("user_id", userId)
+        .gte("date", fromDate)
+        .lte("date", toDate);
+      return data;
+    },
+    ["analytics-rollups"],
+    { revalidate: 300, tags: [`user-rollup-${user.id}`] },
+  );
 
-  // Fetch daily rollups for the range -- used for daily trend aggregation and
-  // model/token summaries. Far fewer rows than raw records.
-  const { data: rollupRows } = await supabase
-    .from("usage_daily_rollups")
-    .select(
-      "date, tool, model, total_sessions, total_input_tokens, total_output_tokens, total_cost_usd",
-    )
-    .eq("user_id", user.id)
-    .gte("date", sinceDate)
-    .lte("date", todayDate);
+  // Fetch usage records and daily rollups in parallel -- neither query depends
+  // on the other. Records are needed for project-level aggregations (rollups
+  // don't track project). Rollups are used for trends and model summaries.
+  const [{ data: records }, rollupRows] = await Promise.all([
+    supabase
+      .from("usage_records")
+      .select(
+        "recorded_at, tool, model, project, input_tokens, output_tokens, cost_usd, user_id, session_id",
+      )
+      .eq("user_id", user.id)
+      .gte("recorded_at", since.toISOString())
+      .order("recorded_at", { ascending: true })
+      .limit(1000),
+    fetchRollups(user.id, sinceDate, todayDate),
+  ]);
 
   // --- Model distribution (from rollups: sum sessions by model) ---
   const modelSessionMap: Record<string, number> = {};

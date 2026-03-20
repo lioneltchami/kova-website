@@ -5,7 +5,7 @@ description: Scan AI tool data directories and record usage events into Kova's l
 
 # kova track
 
-Scan local AI tool data directories and write usage records to `~/.kova/usage/`. Running `kova track` without flags scans all enabled collectors and processes any new events since the last scan.
+Scan local AI tool data directories and write usage records to `~/.kova/usage.json`. Running `kova track` without flags scans all enabled collectors and processes any new events since the last scan.
 
 You do not need to pass token counts manually -- Kova reads them from each tool's own data files. Use the manual flags only if you need to backfill an event from a tool that has no native collector.
 
@@ -19,9 +19,10 @@ kova track [flags]
 
 | Flag              | Type    | Default | Description                                                              |
 | ----------------- | ------- | ------- | ------------------------------------------------------------------------ |
-| `--tool`          | string  | all     | Only scan this tool: `claude_code`, `cursor`, `copilot`, `windsurf`, `devin` |
+| `--tool`          | string  | all     | Only scan this tool: `claude_code`, `cursor`, `copilot`, `windsurf`, `devin`, `aider`, `continue_dev`, `cline`, `amazon_q`, `bolt`, `lovable` |
 | `--daemon`        | boolean | false   | Run continuously in the background, scanning on a regular interval       |
 | `--auto-sync`     | boolean | false   | After each scan, automatically run `kova sync` to push records to the dashboard |
+| `--since`         | string  | --      | Only collect events after this date (ISO 8601 or relative, e.g. `7d`)  |
 | `--model`         | string  | --      | (Manual) Model name for a single event (e.g. `claude-sonnet-4-5`)       |
 | `--input-tokens`  | number  | --      | (Manual) Input/prompt token count for a single event                    |
 | `--output-tokens` | number  | --      | (Manual) Output/completion token count for a single event               |
@@ -41,12 +42,14 @@ kova track
 
 ```
 Scanning collectors...
-  claude_code   12 new events   $4.82
-  cursor         5 new events   $1.20
-  copilot        0 new events
-  windsurf       2 new events   $0.31
+  claude_code    12 new events   $4.82
+  cursor          5 new events   $1.20
+  copilot         0 new events
+  windsurf        2 new events   $0.31
+  aider           3 new events   $0.14
+  continue_dev    1 new event    $0.07
 
-Recorded 19 events. Run `kova sync` to upload.
+Recorded 23 events. Run `kova sync` to upload.
 ```
 
 ### Scan a Single Tool
@@ -94,11 +97,11 @@ kova track \
 
 ## How Events Are Stored
 
-Events are written as newline-delimited JSON to `~/.kova/usage/YYYY-MM/records.jsonl`. Each event gets a unique ID derived from a hash of the tool, timestamp, and token counts, making uploads idempotent -- running `kova sync` multiple times will not create duplicate records in the cloud.
+Events are appended to `~/.kova/usage.json` as a flat JSON array. Each event gets a unique ID derived from a hash of the tool, timestamp, and token counts, making uploads idempotent -- running `kova sync` multiple times will not create duplicate records in the cloud.
 
 ## Related
 
 - [kova sync](/docs/commands/sync) - Upload local records to the cloud dashboard
 - [kova costs](/docs/commands/costs) - View cost breakdowns
 - [Automatic Sync](/docs/guides/auto-sync) - Run tracking continuously with daemon mode or cron
-- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Configure collectors for all tools
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Configure collectors for all 11 tools

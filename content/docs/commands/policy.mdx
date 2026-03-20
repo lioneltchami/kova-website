@@ -51,7 +51,7 @@ kova policy enforce
 
 The `enforce` action runs a set of local checks without contacting the API. It verifies:
 
-- A monthly budget is configured (`kova budget --monthly <amount>`)
+- A monthly budget is configured (`kova budget set --amount <amount> --period monthly`)
 - SSO is enabled (`kova sso configure --issuer <url>`)
 
 ```
@@ -90,7 +90,7 @@ The `enforce` action checks these policies locally (no API key required):
 
 | Policy key              | Description                          | Fix command                                      |
 | ----------------------- | ------------------------------------ | ------------------------------------------------ |
-| `budget.monthly_usd`    | Monthly budget must be configured    | `kova budget --monthly <amount>`                 |
+| `budget.monthly_usd`    | Monthly budget must be configured    | `kova budget set --amount <amount> --period monthly` |
 | `sso.enabled`           | SSO must be configured               | `kova sso configure --issuer <url>`              |
 
 Additional org-level policies (permitted tools, max spend per developer, data residency) are managed in the cloud dashboard and require admin access to set.

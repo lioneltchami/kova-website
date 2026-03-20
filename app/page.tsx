@@ -13,7 +13,10 @@ import { Stats } from "@/components/landing/stats";
 
 export default function Home() {
   return (
-    <main id="main-content" className="min-h-screen bg-kova-charcoal">
+    <main
+      id="main-content"
+      className="min-h-screen bg-white dark:bg-kova-charcoal"
+    >
       <Navbar />
       <Hero />
       <SectionReveal>

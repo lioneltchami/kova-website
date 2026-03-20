@@ -69,12 +69,12 @@ export function Features() {
 
       <div className="relative z-10 mx-auto max-w-6xl">
         <div className="mb-14 text-center">
-          <h2 className="mb-4 text-3xl font-bold text-white sm:text-4xl">
+          <h2 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
             <TextAnimate animation="slideUp">
               Built for Developers Who Ship
             </TextAnimate>
           </h2>
-          <p className="mx-auto max-w-xl text-kova-silver">
+          <p className="mx-auto max-w-xl text-gray-700 dark:text-kova-silver">
             Every feature is designed around one goal: getting correct,
             validated code merged -- faster.
           </p>
@@ -87,7 +87,7 @@ export function Features() {
               title={feature.title}
               icon={feature.icon}
               hoverContent={
-                <p className="text-sm leading-relaxed text-kova-silver">
+                <p className="text-sm leading-relaxed text-gray-700 dark:text-kova-silver">
                   {feature.hover}
                 </p>
               }

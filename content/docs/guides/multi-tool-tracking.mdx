@@ -1,11 +1,11 @@
 ---
 title: Setting up multi-tool tracking
-description: Configure Kova collectors for Cursor, GitHub Copilot, Windsurf, and Devin alongside Claude Code
+description: Configure Kova collectors for all 11 AI coding tools alongside Claude Code
 ---
 
 # Setting Up Multi-Tool Tracking
 
-Kova can track cost and usage across all five major AI coding tools: Claude Code, Cursor, GitHub Copilot, Windsurf, and Devin. Each tool requires a small configuration step to activate its collector.
+Kova can track cost and usage across all 11 AI coding tools: Claude Code, Cursor, GitHub Copilot, Windsurf, Devin, Aider, Continue.dev, Cline, Amazon Q, Bolt, and Lovable. Each tool requires a small configuration step to activate its collector.
 
 Once configured, usage is collected automatically in the background. You do not need to run any command manually -- just use your tools normally and run `kova sync` at the end of the day.
 
@@ -139,6 +139,122 @@ kova config set collectors.devin.api_key "your-devin-api-key"
 kova costs --tool devin --since 7d
 ```
 
+## Aider
+
+Aider is an open-source AI coding assistant that uses your own API keys (Anthropic, OpenAI, etc.). Kova reads Aider's local session logs to capture token counts and costs.
+
+### Enable the Aider Collector
+
+```bash
+kova config set collectors.aider.enabled true
+```
+
+Kova auto-detects Aider's log directory at `~/.aider/` on macOS and Linux, and `%USERPROFILE%\.aider\` on Windows.
+
+### Verify
+
+```bash
+kova costs --tool aider --since 7d
+```
+
+## Continue.dev
+
+Continue.dev is an open-source AI coding assistant for VS Code and JetBrains. Kova reads Continue's local session store to capture request counts and cost estimates.
+
+### Enable the Continue.dev Collector
+
+```bash
+kova config set collectors.continue_dev.enabled true
+```
+
+Kova auto-detects the Continue.dev data directory at `~/.continue/` on macOS and Linux, and `%USERPROFILE%\.continue\` on Windows.
+
+### Verify
+
+```bash
+kova costs --tool continue-dev --since 7d
+```
+
+## Cline
+
+Cline is an AI coding assistant VS Code extension. Kova reads Cline's VS Code extension storage to capture session token counts and costs.
+
+### Enable the Cline Collector
+
+```bash
+kova config set collectors.cline.enabled true
+```
+
+Kova auto-detects the Cline extension storage path based on your platform:
+
+```
+macOS:   ~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/
+Linux:   ~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/
+Windows: %APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\
+```
+
+### Verify
+
+```bash
+kova costs --tool cline --since 7d
+```
+
+## Amazon Q
+
+Amazon Q Developer has usage-based pricing for inline completions and chat interactions. Kova reads Amazon Q's local usage logs from the AWS toolkit directory.
+
+### Enable the Amazon Q Collector
+
+```bash
+kova config set collectors.amazon_q.enabled true
+```
+
+Kova auto-detects the Amazon Q data directory at `~/.aws/amazonq/` on macOS and Linux, and `%USERPROFILE%\.aws\amazonq\` on Windows.
+
+### Verify
+
+```bash
+kova costs --tool amazon-q --since 7d
+```
+
+## Bolt
+
+Bolt (bolt.new) is a browser-based AI coding platform with subscription pricing. Kova amortizes your monthly subscription cost across active days.
+
+### Enable the Bolt Collector
+
+```bash
+kova config set collectors.bolt.enabled true
+kova config set collectors.bolt.monthly_cost 20.00
+```
+
+Set `monthly_cost` to your actual Bolt subscription cost per seat.
+
+### Verify
+
+```bash
+kova costs --tool bolt --since 7d
+```
+
+## Lovable
+
+Lovable is an AI-powered app builder with subscription pricing. Kova amortizes your monthly subscription cost across active days.
+
+### Enable the Lovable Collector
+
+```bash
+kova config set collectors.lovable.enabled true
+kova config set collectors.lovable.monthly_cost 25.00
+```
+
+Set `monthly_cost` to your actual Lovable subscription cost per seat.
+
+### Verify
+
+```bash
+kova costs --tool lovable --since 7d
+```
+
 ## Viewing All Tools Together
 
 Once collectors are active, view your full cross-tool cost summary:
@@ -156,30 +272,36 @@ cursor          $18.40      312        820K / 210K
 copilot         $5.17       --         flat-rate ($19/mo)
 windsurf        $3.40       28         95K / 42K
 devin           $21.60      6          -- (ACU-based)
+aider           $4.20       47         310K / 88K
+continue-dev    $2.80       63         198K / 54K
+cline           $6.50       31         420K / 112K
+amazon-q        $0.00       --         (included tier)
+bolt            $3.33       --         flat-rate ($20/mo)
+lovable         $4.17       --         flat-rate ($25/mo)
 ───────────────────────────────────────────────────────────
-Total           $90.75      440+
+Total          $111.75      581+
 ```
 
-## Full kova.yaml Example
+## Full config.json Example
 
-After configuring all collectors, your `~/.kova/config.yaml` (global config) will look like:
+After configuring all collectors, your `~/.kova/config.json` will include:
 
-```yaml
-collectors:
-  claude_code:
-    enabled: true
-  cursor:
-    enabled: true
-    db_path: null # auto-detect
-  copilot:
-    enabled: true
-    monthly_cost: 19.00
-  windsurf:
-    enabled: true
-    api_key: "cwk_..."
-  devin:
-    enabled: true
-    api_key: "dv_..."
+```json
+{
+  "collectors": {
+    "claude_code": { "enabled": true },
+    "cursor": { "enabled": true, "db_path": null },
+    "copilot": { "enabled": true, "monthly_cost": 19.00 },
+    "windsurf": { "enabled": true, "api_key": "cwk_..." },
+    "devin": { "enabled": true, "api_key": "dv_..." },
+    "aider": { "enabled": true },
+    "continue_dev": { "enabled": true },
+    "cline": { "enabled": true },
+    "amazon_q": { "enabled": true },
+    "bolt": { "enabled": true, "monthly_cost": 20.00 },
+    "lovable": { "enabled": true, "monthly_cost": 25.00 }
+  }
+}
 ```
 
 ## Related

@@ -68,7 +68,7 @@ Set a budget per cost center in the dashboard under **Settings > Budgets**. When
 ### Set an org-wide monthly budget via CLI
 
 ```bash
-kova budget --monthly 500
+kova budget set --amount 500 --period monthly
 ```
 
 This sets a global budget for the entire workspace. Cost center budgets are set in the dashboard and are not currently configurable via the CLI.
@@ -76,7 +76,7 @@ This sets a global budget for the entire workspace. Cost center budgets are set 
 ### Budget alert thresholds
 
 ```bash
-kova budget --warn-at 80   # Warn at 80% of budget used
+kova budget set --amount 500 --period monthly --warn-at 80   # Warn at 80% of budget used
 ```
 
 The warning threshold applies to both the org-wide budget and per-cost-center budgets.
@@ -126,7 +126,7 @@ The `kova policy` command lets admins define and enforce org-level rules. Curren
 
 | Policy                  | Description                        | Fix                                           |
 | ----------------------- | ---------------------------------- | --------------------------------------------- |
-| `budget.monthly_usd`    | Monthly budget must be configured  | `kova budget --monthly <amount>`              |
+| `budget.monthly_usd`    | Monthly budget must be configured  | `kova budget set --amount <amount> --period monthly` |
 | `sso.enabled`           | SSO must be configured             | `kova sso configure --issuer <url>`           |
 
 Run `kova policy enforce` as part of your developer onboarding checklist or as a CI step.
@@ -138,7 +138,7 @@ Run `kova policy enforce` as part of your developer onboarding checklist or as a
 3. Admin configures SSO: `kova sso configure --issuer <url>`.
 4. Admin distributes the SSO issuer URL to all developers.
 5. Each developer runs `kova sso login` to authenticate.
-6. Admin sets org-wide budget: `kova budget --monthly <amount>`.
+6. Admin sets org-wide budget: `kova budget set --amount <amount> --period monthly`.
 7. Each developer tags their projects: `kova tag <project> --cost-center <team>`.
 8. Automate daily sync with a cron job or `auto_sync: true` in `~/.kova/config.json`.
 9. Add `kova policy enforce` to CI to block non-compliant machines.

@@ -11,7 +11,7 @@ description: JSON output schema from kova report -- field descriptions for perio
 
 ```bash
 kova report --format json
-kova report --format json --month 2026-03
+kova report --format json --period 2026-03
 kova report --format json --output report.json
 ```
 
@@ -160,7 +160,7 @@ Array of objects, one per project that had usage in the period. Projects with `n
 ### Save to file
 
 ```bash
-kova report --format json --month 2026-03 --output march-report.json
+kova report --format json --period 2026-03 --output march-report.json
 ```
 
 ### Extract a single field with jq

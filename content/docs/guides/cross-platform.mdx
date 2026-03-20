@@ -1,23 +1,49 @@
 ---
 title: Cross-Platform
-description: Using Kova on Windows, macOS, and Linux — platform-specific behavior and known differences
+description: Using Kova on Windows, macOS, and Linux -- platform-specific behavior and collector data paths
 ---
 
 # Cross-Platform
 
-Kova runs on Windows, macOS, and Linux. The CLI interface and plan format are identical across platforms. The differences are in subprocess spawning, file path handling, and atomic write implementation. This page documents those differences and how Kova handles them transparently.
+Kova runs on Windows, macOS, and Linux. The CLI interface and config format are identical across platforms. The differences are in file path handling, atomic write implementation, and where each AI tool stores its local data files. This page documents those differences.
 
 ## Platform Detection
 
 Kova reads `process.platform` at runtime to select platform-specific code paths:
 
-```
+```text
 "win32"  -- Windows
 "darwin" -- macOS
 "linux"  -- Linux
 ```
 
 Platform detection is automatic. You do not configure it.
+
+---
+
+## Collector Data Paths by Platform
+
+Each AI tool stores its local usage data in a platform-specific location. Kova auto-detects these paths on macOS and Linux. On Windows, some paths require manual configuration if auto-detection fails.
+
+| Tool         | macOS                                                                           | Linux                                                       | Windows                                                     |
+| ------------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- |
+| Claude Code  | `~/.claude/`                                                                    | `~/.claude/`                                                | `%APPDATA%\Claude\`                                         |
+| Cursor       | `~/Library/Application Support/Cursor/User/globalStorage/`                      | `~/.config/Cursor/User/globalStorage/`                      | `%APPDATA%\Cursor\User\globalStorage\`                      |
+| Copilot      | `~/Library/Application Support/GitHub Copilot/`                                 | `~/.config/github-copilot/`                                 | `%APPDATA%\GitHub Copilot\`                                 |
+| Windsurf     | API-based (no local files)                                                      | API-based (no local files)                                  | API-based (no local files)                                  |
+| Aider        | `~/.aider/`                                                                     | `~/.aider/`                                                 | `%USERPROFILE%\.aider\`                                     |
+| Continue.dev | `~/.continue/`                                                                  | `~/.continue/`                                              | `%USERPROFILE%\.continue\`                                  |
+| Cline        | `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/` | `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/` | `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\` |
+| Amazon Q     | `~/.aws/amazonq/`                                                               | `~/.aws/amazonq/`                                           | `%USERPROFILE%\.aws\amazonq\`                               |
+| Devin        | API-based (no local files)                                                      | API-based (no local files)                                  | API-based (no local files)                                  |
+| Bolt         | API-based (no local files)                                                      | API-based (no local files)                                  | API-based (no local files)                                  |
+| Lovable      | API-based (no local files)                                                      | API-based (no local files)                                  | API-based (no local files)                                  |
+
+If Kova cannot find a tool's data at the auto-detected path, override it manually:
+
+```bash
+kova config set collectors.cursor.db_path "/custom/path/to/cursor/data"
+```
 
 ---
 
@@ -38,45 +64,15 @@ await execa("claude", args, {
 });
 ```
 
-This applies to invocations of `claude`, `gh`, `git`, and any quality commands configured in `kova.yaml` (such as `npm test` or `pnpm lint`). You do not need to configure anything. Kova detects the platform at startup and applies the correct setting for every subprocess call.
+This applies to all subprocess calls Kova makes. You do not need to configure anything.
 
-### Path Separators and Glob Normalization
+### Path Separators
 
-Windows uses backslashes (`\`) in filesystem paths. Kova normalizes all paths to forward slashes internally, including in:
-
-- Plan files (`.claude/tasks/plan-name.md`)
-- Checkpoint files (`.progress.json` path fields)
-- Boundary glob patterns in `kova.yaml`
-- Agent context (relevant file paths passed to agents)
-
-```json
-// .progress.json on Windows -- forward slashes throughout
-{
-  "plan": ".claude/tasks/add-user-profiles.md",
-  "tasks": {
-    "setup-storage": {
-      "status": "completed"
-    }
-  }
-}
-```
-
-Glob patterns in `kova.yaml` boundaries use forward slashes on all platforms:
-
-```yaml
-boundaries:
-  never_touch:
-    - "*.lock"
-    - ".env*"
-    - "node_modules/**"
-    - "src/generated/**"
-```
-
-These patterns work identically on Windows, macOS, and Linux.
+Windows uses backslashes (`\`) in filesystem paths. Kova normalizes all paths to forward slashes internally, including in config values and log output. You can use either separator when running commands.
 
 ### Atomic Checkpoint Writes
 
-On Unix, atomic file writes use `rename()` (write to temp, rename to target). On Windows, Kova first unlinks (deletes) the existing file, then renames the temp file to the target path. This two-step approach avoids the Windows restriction on renaming to a path that already exists:
+On Unix, atomic file writes use `rename()` (write to temp, rename to target). On Windows, Kova first unlinks the existing file, then renames the temp file to the target path:
 
 ```typescript
 // Windows atomic write
@@ -87,7 +83,7 @@ await fs.rename(tempPath, targetPath);
 await fs.rename(tempPath, targetPath); // atomic on POSIX
 ```
 
-This guarantees the checkpoint is never in an inconsistent state, even if the process is killed between the unlink and rename steps. In that case, the old checkpoint is gone but the temp file still exists. Kova detects and recovers orphaned temp files at startup.
+This guarantees `~/.kova/usage.json` and `~/.kova/config.json` are never left in an inconsistent state.
 
 ### PowerShell and cmd
 
@@ -95,25 +91,25 @@ Kova works in both PowerShell and cmd without any difference in behavior:
 
 ```powershell
 # PowerShell
-kova init
-kova plan "add user authentication"
-kova build
-kova pr
+kova track
+kova sync
+kova costs
+kova ci-report
 ```
 
 ```cmd
 :: cmd.exe
-kova init
-kova plan "add user authentication"
-kova build
-kova pr
+kova track
+kova sync
+kova costs
+kova ci-report
 ```
 
 ### Fixing PATH Issues on Windows
 
 After `npm install -g kova-cli`, if `kova` is not recognized:
 
-```
+```text
 'kova' is not recognized as an internal or external command
 ```
 
@@ -125,8 +121,8 @@ The npm global bin directory is not in your PATH. Add it:
 Alternatively, use `npx`:
 
 ```cmd
-npx kova-cli init
-npx kova-cli plan "add feature"
+npx kova-cli track
+npx kova-cli costs
 ```
 
 Or restart your terminal after global install. Windows sometimes requires a new shell session for PATH changes to take effect.
@@ -152,7 +148,7 @@ Verify the install:
 
 ```bash
 kova --version
-kova init
+kova track
 ```
 
 ### Shell Completions (macOS)
@@ -227,16 +223,13 @@ Kova works in GitHub Actions, GitLab CI, CircleCI, and other CI systems. All CI 
 ### GitHub Actions example
 
 ```yaml
-name: Kova Build
+name: Kova CI Report
 on:
-  workflow_dispatch:
-    inputs:
-      plan:
-        description: Plan file path
-        required: true
+  push:
+    branches: [main]
 
 jobs:
-  build:
+  report:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -249,25 +242,24 @@ jobs:
       - name: Install Kova
         run: npm install -g kova-cli
 
-      - name: Run build
+      - name: Sync and report
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: kova build ${{ inputs.plan }} --no-notify
+          KOVA_API_KEY: ${{ secrets.KOVA_API_KEY }}
+        run: |
+          kova sync
+          kova ci-report
 ```
 
-### Required CI environment
+### Per-user config in CI
 
-| Requirement           | Notes                           |
-| --------------------- | ------------------------------- |
-| Node.js 18+           | 20 or 22 recommended            |
-| `ANTHROPIC_API_KEY`   | Claude Code CLI authentication  |
-| `GITHUB_TOKEN`        | Required only for `kova pr`     |
-| `kova.yaml` committed | Kova reads config from the repo |
+Kova reads config from `~/.kova/config.json`. In CI, set the API key via environment variable rather than committing credentials:
 
-### Committing kova.yaml
+```bash
+export KOVA_API_KEY=kova_xxxx...
+kova sync
+```
 
-Commit `kova.yaml` to your repository so all team members and CI environments use the same configuration. Do not commit `.progress.json` (add it to `.gitignore`).
+Do not commit `~/.kova/config.json`. Each developer and CI runner uses their own per-user config.
 
 ---
 
@@ -287,5 +279,5 @@ Commit `kova.yaml` to your repository so all team members and CI environments us
 ## Related
 
 - [Installation](/docs/getting-started/installation) - Platform-specific installation instructions
-- [Checkpoint Recovery](/docs/guides/checkpoint-recovery) - Atomic write behavior and crash safety
 - [kova completions](/docs/commands/completions) - Shell completion setup
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Configure collectors for all 11 tools
