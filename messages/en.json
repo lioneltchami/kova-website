@@ -1,0 +1,47 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "export": "Export",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "tryAgain": "Try again",
+    "upgrade": "Upgrade to Pro",
+    "viewDashboard": "View Dashboard"
+  },
+  "dashboard": {
+    "overview": "Overview",
+    "usage": "Usage",
+    "analytics": "Analytics",
+    "budget": "Budget",
+    "team": "Team",
+    "settings": "Settings",
+    "costCenters": "Cost Centers",
+    "auditLog": "Audit Log",
+    "webhooks": "Webhooks"
+  },
+  "kpi": {
+    "totalSpend": "Total Spend This Month",
+    "dailyBurn": "Daily Burn Rate",
+    "topTool": "Top Tool by Cost",
+    "budgetStatus": "Budget Status",
+    "projectedCost": "Projected This Month"
+  },
+  "onboarding": {
+    "installCli": "Install Kova CLI",
+    "trackUsage": "Track your first session",
+    "syncDashboard": "Sync to dashboard",
+    "welcome": "Welcome to Kova",
+    "getStarted": "Get Started"
+  },
+  "settings": {
+    "apiKeys": "API Keys",
+    "notifications": "Notification Preferences",
+    "billing": "Billing History",
+    "integrations": "Integrations",
+    "gdpr": "Your Data",
+    "downloadData": "Download My Data",
+    "deleteAccount": "Delete My Account"
+  }
+}

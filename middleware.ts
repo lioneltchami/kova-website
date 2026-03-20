@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 // Routes that require Supabase auth checking
-const AUTH_ROUTES = ["/dashboard", "/login", "/auth"];
+const AUTH_ROUTES = ["/dashboard", "/login", "/auth", "/admin"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   ) {
     // Supabase not configured yet -- let dashboard routes show a setup message
-    if (pathname.startsWith("/dashboard")) {
+    if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return NextResponse.next();
@@ -34,6 +34,33 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Protect admin routes -- require authenticated user first, then check operator flag
+  if (pathname.startsWith("/admin")) {
+    if (!user) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirectTo", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Check is_operator via admin client (bypasses RLS)
+    try {
+      const { createAdminClient } = await import("@/lib/supabase-admin");
+      const admin = createAdminClient();
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("is_operator")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.is_operator) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    } catch {
+      // Admin client misconfigured -- deny access
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   // Redirect authenticated users away from login

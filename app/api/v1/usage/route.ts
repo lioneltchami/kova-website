@@ -224,6 +224,51 @@ export async function POST(request: NextRequest) {
   const accepted: number = result?.[0]?.accepted ?? 0;
   const duplicates: number = result?.[0]?.duplicates ?? 0;
 
+  // 9. Trigger webhook deliveries for active endpoints subscribed to 'usage.synced'
+  //    Best-effort: errors here must not affect the upload response.
+  if (teamId && accepted > 0) {
+    void (async () => {
+      try {
+        const { data: endpoints } = await admin
+          .from("webhook_endpoints")
+          .select("id")
+          .eq("team_id", teamId)
+          .eq("is_active", true)
+          .contains("events", ["usage.synced"]);
+
+        if (endpoints && endpoints.length > 0) {
+          const payload = {
+            event: "usage.synced",
+            team_id: teamId,
+            user_id: userId,
+            accepted,
+            duplicates,
+            synced_at: new Date().toISOString(),
+          };
+
+          const deliveryRows = (endpoints as { id: string }[]).map((ep) => ({
+            endpoint_id: ep.id,
+            event_type: "usage.synced",
+            payload,
+            status: "pending",
+            attempt_count: 0,
+            next_attempt_at: new Date().toISOString(),
+          }));
+
+          const { error: deliveryError } = await admin
+            .from("webhook_deliveries")
+            .insert(deliveryRows);
+
+          if (deliveryError) {
+            console.error("webhook_deliveries insert error:", deliveryError);
+          }
+        }
+      } catch (err) {
+        console.error("Webhook delivery trigger error:", err);
+      }
+    })();
+  }
+
   return NextResponse.json(
     { accepted, duplicates, errors: 0 },
     {

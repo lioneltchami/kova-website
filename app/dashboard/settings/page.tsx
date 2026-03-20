@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiKeyManager } from "@/components/dashboard/api-key-manager";
+import { GdprActions } from "@/components/dashboard/gdpr-actions";
 import { formatRelativeDate } from "@/lib/dashboard-utils";
 import { createClient } from "@/utils/supabase/server";
 
@@ -208,6 +209,39 @@ export default async function SettingsPage() {
 						</div>
 					</div>
 				)}
+			</section>
+
+			{/* Enterprise: SSO link */}
+			{plan === "enterprise" && (
+				<section className="bg-kova-surface border border-kova-border rounded-xl p-6 mb-6">
+					<div className="flex items-center justify-between">
+						<div>
+							<h2 className="text-base font-semibold text-white mb-1">
+								Single Sign-On (SSO)
+							</h2>
+							<p className="text-sm text-kova-silver-dim">
+								Configure SAML SSO for your organization.
+							</p>
+						</div>
+						<Link
+							href="/dashboard/sso"
+							className="flex-shrink-0 px-4 py-2 bg-kova-charcoal-light border border-kova-border text-sm text-kova-silver rounded-lg hover:border-kova-blue/50 hover:text-white transition-colors"
+						>
+							Configure SSO &rarr;
+						</Link>
+					</div>
+				</section>
+			)}
+
+			{/* GDPR / Privacy */}
+			<section className="bg-kova-surface border border-kova-border rounded-xl p-6 mb-6">
+				<h2 className="text-base font-semibold text-white mb-1">
+					Privacy &amp; Data
+				</h2>
+				<p className="text-sm text-kova-silver-dim mb-4">
+					Export or permanently delete your account data.
+				</p>
+				<GdprActions />
 			</section>
 
 			{/* CLI Setup */}
