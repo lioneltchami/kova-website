@@ -1,0 +1,64 @@
+---
+title: API Overview
+description: Kova REST API for programmatic access to usage data
+---
+
+# API Overview
+
+The Kova API allows you to programmatically upload usage data and query cost analytics.
+
+## Base URL
+
+```
+https://kova.dev/api/v1
+```
+
+## Authentication
+
+All API requests require a Bearer token. Create an API key in your [dashboard settings](/dashboard/settings).
+
+```bash
+curl -H "Authorization: Bearer kova_your_api_key" https://kova.dev/api/v1/usage
+```
+
+## Endpoints
+
+| Method | Endpoint             | Description               |
+| ------ | -------------------- | ------------------------- |
+| POST   | /api/v1/usage        | Upload usage records      |
+| GET    | /api/v1/usage/export | Export usage data as CSV  |
+| GET    | /api/v1/budget       | List budgets              |
+| POST   | /api/v1/budget       | Create/update budget      |
+| GET    | /api/v1/subscription | Check subscription status |
+
+## Response Format
+
+All endpoints return JSON. Successful responses include a `data` key. Errors include an `error` key with a human-readable message.
+
+```json
+{
+  "data": { ... }
+}
+```
+
+```json
+{
+  "error": "Unauthorized: invalid or missing API key"
+}
+```
+
+## HTTP Status Codes
+
+| Code | Meaning                                                       |
+| ---- | ------------------------------------------------------------- |
+| 200  | Success                                                       |
+| 201  | Created                                                       |
+| 400  | Bad Request -- check your request body                        |
+| 401  | Unauthorized -- check your API key                            |
+| 429  | Too Many Requests -- see [Rate Limits](/docs/api/rate-limits) |
+| 500  | Internal Server Error                                         |
+
+## Related
+
+- [Usage Endpoint](/docs/api/usage) - Upload and export usage records
+- [Rate Limits](/docs/api/rate-limits) - Request limits and retry guidance

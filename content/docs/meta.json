@@ -22,6 +22,10 @@
     "guides/team-dashboard-setup",
     "guides/token-tracking",
     "guides/auto-sync",
-    "guides/budget-alerts"
+    "guides/budget-alerts",
+    "---API---",
+    "api/overview",
+    "api/usage",
+    "api/rate-limits"
   ]
 }

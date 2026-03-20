@@ -3,9 +3,9 @@
 import { AnimatedNumber } from "@/components/ui/animated-number";
 
 const stats = [
-  { value: 459, suffix: "+", label: "Tests Passing" },
-  { value: 14, suffix: "", label: "Commands Available" },
-  { value: 6, suffix: "", label: "Plan Templates" },
+  { value: 5, suffix: "", label: "AI Tools Tracked" },
+  { value: 12, suffix: "+", label: "Cost Metrics" },
+  { value: 100, suffix: "%", label: "Usage Visibility" },
 ];
 
 export function Stats() {

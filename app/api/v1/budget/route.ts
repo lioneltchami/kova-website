@@ -105,6 +105,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // M-2: Validate warn_at_percent is within the allowed range (1-100).
+  if (
+    warn_at_percent !== undefined &&
+    warn_at_percent !== null &&
+    (typeof warn_at_percent !== "number" ||
+      !Number.isInteger(warn_at_percent) ||
+      warn_at_percent < 1 ||
+      warn_at_percent > 100)
+  ) {
+    return NextResponse.json(
+      { error: "warn_at_percent must be an integer between 1 and 100" },
+      { status: 400 },
+    );
+  }
+
   // Team budgets require a team_id
   if (scope === "team" && !team_id) {
     return NextResponse.json(

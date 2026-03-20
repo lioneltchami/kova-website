@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ApiKeyManager } from "@/components/dashboard/api-key-manager";
 import { formatRelativeDate } from "@/lib/dashboard-utils";
 import { createClient } from "@/utils/supabase/server";
@@ -13,16 +14,20 @@ export default async function SettingsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("email, username, avatar_url, plan, created_at")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   const { data: subscription } = await supabase
     .from("subscriptions")
     .select("*")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .eq("subscription_status", "active")
     .order("created_at", { ascending: false })
     .limit(1)

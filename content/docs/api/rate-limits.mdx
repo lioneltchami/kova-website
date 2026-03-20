@@ -1,0 +1,130 @@
+---
+title: Rate Limits
+description: API rate limits, retry guidance, and request constraints for the Kova API
+---
+
+# Rate Limits
+
+The Kova API enforces rate limits to ensure fair usage and service stability.
+
+## Limits
+
+| Limit                     | Value           |
+| ------------------------- | --------------- |
+| Requests per minute       | 100 per API key |
+| Maximum request body size | 10 MB           |
+| Maximum records per batch | 500 records     |
+
+All limits are applied per API key, not per IP address. Each API key has its own independent limit window.
+
+## 429 Response
+
+When you exceed the rate limit, the API returns a `429 Too Many Requests` response:
+
+```json
+{
+  "error": "rate_limited",
+  "message": "You have exceeded 100 requests per minute. See the Retry-After header for when to retry."
+}
+```
+
+### Headers
+
+| Header                  | Description                                    |
+| ----------------------- | ---------------------------------------------- |
+| `Retry-After`           | Number of seconds to wait before retrying.     |
+| `X-RateLimit-Limit`     | Maximum requests allowed per minute.           |
+| `X-RateLimit-Remaining` | Requests remaining in the current window.      |
+| `X-RateLimit-Reset`     | Unix timestamp when the current window resets. |
+
+### Example Response Headers
+
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 12
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1742392860
+```
+
+## Retry Strategy
+
+Read the `Retry-After` header and wait that many seconds before retrying. Do not poll with fixed delays -- use the `Retry-After` value to avoid wasting requests.
+
+### Example: Retry with Retry-After
+
+```bash
+response=$(curl -s -o body.json -w "%{http_code}" \
+  -X POST https://kova.dev/api/v1/usage \
+  -H "Authorization: Bearer kova_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d @records.json)
+
+if [ "$response" = "429" ]; then
+  retry_after=$(curl -sI https://kova.dev/api/v1/usage \
+    -H "Authorization: Bearer kova_your_api_key" | grep -i Retry-After | awk '{print $2}')
+  echo "Rate limited. Waiting ${retry_after}s..."
+  sleep "$retry_after"
+fi
+```
+
+### Example: Retry in Python
+
+```python
+import time
+import requests
+
+def upload_with_retry(records, api_key, max_retries=3):
+    url = "https://kova.dev/api/v1/usage"
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    for attempt in range(max_retries):
+        response = requests.post(url, json={"records": records}, headers=headers)
+
+        if response.status_code == 429:
+            retry_after = int(response.headers.get("Retry-After", 60))
+            print(f"Rate limited. Retrying in {retry_after}s...")
+            time.sleep(retry_after)
+            continue
+
+        response.raise_for_status()
+        return response.json()
+
+    raise Exception("Max retries exceeded")
+```
+
+## Request Size Limits
+
+### Body Size
+
+The maximum request body size is **10 MB**. Requests exceeding this limit return `400 Bad Request` with error code `body_too_large`.
+
+```json
+{
+  "error": "body_too_large",
+  "message": "Request body exceeds the 10 MB limit."
+}
+```
+
+### Batch Size
+
+The `POST /api/v1/usage` endpoint accepts a maximum of **500 records per request**. If you have more records to upload, split them into multiple batches.
+
+```python
+def upload_in_batches(records, api_key, batch_size=500):
+    for i in range(0, len(records), batch_size):
+        batch = records[i : i + batch_size]
+        upload_with_retry(batch, api_key)
+```
+
+## Best Practices
+
+- **Batch uploads**: Send up to 500 records per request rather than one record at a time. This uses far fewer requests and stays well within rate limits.
+- **Use `kova sync`**: The CLI handles batching and retry automatically. Direct API access is for custom integrations.
+- **Cache your API key**: Reuse a single long-lived API key rather than generating new ones per request.
+- **Monitor remaining requests**: Check `X-RateLimit-Remaining` to avoid hitting the limit unexpectedly.
+
+## Related
+
+- [API Overview](/docs/api/overview) - Authentication and response formats
+- [Usage Endpoint](/docs/api/usage) - Upload and export usage records

@@ -56,38 +56,52 @@ export default async function DashboardOverview({
 
   // Current month boundaries for budget calculation
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .slice(0, 10);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    .toISOString()
+    .slice(0, 10);
 
   // Previous month boundaries
-  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    .toISOString()
+    .slice(0, 10);
+  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+    .toISOString()
+    .slice(0, 10);
 
-  // Fetch usage records in the selected range for trend and tool data
-  const { data: usageInRange } = await supabase
-    .from("usage_records")
+  // Range boundaries for trend/tool data
+  const sinceDate = since.toISOString().slice(0, 10);
+  const todayDate = now.toISOString().slice(0, 10);
+
+  // --- Rollup queries (dramatically fewer rows than raw usage_records) ---
+
+  // Current month KPI: use daily rollups grouped by day in the month
+  const { data: thisMonthRollup } = await supabase
+    .from("usage_daily_rollups")
+    .select("total_cost_usd, total_sessions, tool, date")
+    .eq("user_id", user.id)
+    .gte("date", monthStart)
+    .lte("date", monthEnd);
+
+  // Previous month KPI: use daily rollups for month-over-month comparison
+  const { data: prevMonthRollup } = await supabase
+    .from("usage_daily_rollups")
+    .select("total_cost_usd")
+    .eq("user_id", user.id)
+    .gte("date", prevMonthStart)
+    .lte("date", prevMonthEnd);
+
+  // Range data for trend chart and tool comparison: use daily rollups
+  const { data: rangeRollup } = await supabase
+    .from("usage_daily_rollups")
     .select(
-      "recorded_at, tool, cost_usd, input_tokens, output_tokens, model, project, session_id",
+      "date, tool, total_cost_usd, total_sessions, total_input_tokens, total_output_tokens",
     )
     .eq("user_id", user.id)
-    .gte("recorded_at", since.toISOString())
-    .order("recorded_at", { ascending: false });
-
-  // Fetch current month spend for KPI
-  const { data: thisMonthRecords } = await supabase
-    .from("usage_records")
-    .select("cost_usd, tool")
-    .eq("user_id", user.id)
-    .gte("recorded_at", monthStart.toISOString())
-    .lte("recorded_at", monthEnd.toISOString());
-
-  // Fetch previous month spend for trend comparison
-  const { data: prevMonthRecords } = await supabase
-    .from("usage_records")
-    .select("cost_usd")
-    .eq("user_id", user.id)
-    .gte("recorded_at", prevMonthStart.toISOString())
-    .lte("recorded_at", prevMonthEnd.toISOString());
+    .gte("date", sinceDate)
+    .lte("date", todayDate);
 
   // Fetch active monthly budget
   const { data: budget } = await supabase
@@ -100,24 +114,38 @@ export default async function DashboardOverview({
     .limit(1)
     .maybeSingle();
 
-  // --- Compute KPI values ---
+  // Recent raw records (last 20) -- kept on usage_records because rollups
+  // don't have project/model/session_id granularity needed for the table
+  const { data: recentRecords } = await supabase
+    .from("usage_records")
+    .select(
+      "recorded_at, tool, cost_usd, input_tokens, output_tokens, model, project, session_id",
+    )
+    .eq("user_id", user.id)
+    .order("recorded_at", { ascending: false })
+    .limit(20);
+
+  // --- Compute KPI values from rollup data ---
   const totalSpendThisMonth =
-    thisMonthRecords?.reduce((s, r) => s + Number(r.cost_usd ?? 0), 0) ?? 0;
+    thisMonthRollup?.reduce((s, r) => s + Number(r.total_cost_usd ?? 0), 0) ??
+    0;
 
   const prevMonthSpend =
-    prevMonthRecords?.reduce((s, r) => s + Number(r.cost_usd ?? 0), 0) ?? 0;
+    prevMonthRollup?.reduce((s, r) => s + Number(r.total_cost_usd ?? 0), 0) ??
+    0;
 
-  // Daily burn rate = range total cost / number of days in range
+  // Daily burn rate from range rollup
   const rangeMs = now.getTime() - since.getTime();
   const rangeDays = Math.max(1, rangeMs / (1000 * 60 * 60 * 24));
   const rangeTotalCost =
-    usageInRange?.reduce((s, r) => s + Number(r.cost_usd ?? 0), 0) ?? 0;
+    rangeRollup?.reduce((s, r) => s + Number(r.total_cost_usd ?? 0), 0) ?? 0;
   const dailyBurnRate = rangeTotalCost / rangeDays;
 
-  // Top tool by cost in range
+  // Top tool by cost in range (from rollup)
   const toolCostMap: Record<string, number> = {};
-  usageInRange?.forEach((r) => {
-    toolCostMap[r.tool] = (toolCostMap[r.tool] ?? 0) + Number(r.cost_usd ?? 0);
+  rangeRollup?.forEach((r) => {
+    toolCostMap[r.tool] =
+      (toolCostMap[r.tool] ?? 0) + Number(r.total_cost_usd ?? 0);
   });
   const toolCostEntries = Object.entries(toolCostMap).sort(
     ([, a], [, b]) => b - a,
@@ -132,24 +160,20 @@ export default async function DashboardOverview({
       ? (totalSpendThisMonth / budgetAmount) * 100
       : null;
 
-  // --- Daily cost trend data ---
+  // --- Daily cost trend data (from range rollup -- already per-day per-tool) ---
   const dailyMap: Record<string, number> = {};
-  usageInRange?.forEach((r) => {
-    const day = r.recorded_at.slice(0, 10);
-    dailyMap[day] = (dailyMap[day] ?? 0) + Number(r.cost_usd ?? 0);
+  rangeRollup?.forEach((r) => {
+    dailyMap[r.date] = (dailyMap[r.date] ?? 0) + Number(r.total_cost_usd ?? 0);
   });
   const costTrendData = Object.entries(dailyMap)
     .map(([date, cost]) => ({ date, cost }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  // --- Tool comparison data (from range) ---
+  // --- Tool comparison data (from range rollup) ---
   const toolComparisonData = toolCostEntries.map(([tool, cost]) => ({
     tool,
     cost,
   }));
-
-  // --- Recent records (last 20) ---
-  const recentRecords = usageInRange?.slice(0, 20) ?? [];
 
   return (
     <div>
@@ -219,7 +243,7 @@ export default async function DashboardOverview({
       {/* Recent Usage Table */}
       <div className="bg-kova-surface border border-kova-border rounded-xl p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Recent Usage</h2>
-        {recentRecords.length === 0 ? (
+        {!recentRecords || recentRecords.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-kova-silver-dim">No usage records yet.</p>
             <p className="text-sm text-kova-silver-dim mt-2">

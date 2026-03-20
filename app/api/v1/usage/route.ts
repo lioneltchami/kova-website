@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase-admin";
-import { checkRateLimit } from "./rate-limit";
+import { checkRateLimit } from "./rate-limit-redis";
 
 // POST /api/v1/usage -- CLI uploads usage records, authenticated via Bearer API key
 //
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
   // 4. Rate limit check -- keyed by first 8 chars of the API key
   const keyPrefix = apiKey.slice(0, 8);
-  const rateLimit = checkRateLimit(keyPrefix);
+  const rateLimit = await checkRateLimit(keyPrefix);
 
   if (!rateLimit.allowed) {
     const retryAfterSeconds = Math.ceil(
@@ -113,6 +113,32 @@ export async function POST(request: NextRequest) {
       { error: "Maximum 500 records per request", code: "TOO_MANY_RECORDS" },
       { status: 400 },
     );
+  }
+
+  // 5b. H-2: Validate field lengths before sending records to the database.
+  //     These limits mirror the CHECK constraints in migration 003.
+  const FIELD_LIMITS: Record<string, number> = {
+    tool: 50,
+    model: 100,
+    session_id: 200,
+    project: 500,
+    cli_version: 50,
+  };
+
+  for (let i = 0; i < records.length; i++) {
+    const rec = records[i] as Record<string, unknown>;
+    for (const [field, maxLen] of Object.entries(FIELD_LIMITS)) {
+      const val = rec[field];
+      if (typeof val === "string" && val.length > maxLen) {
+        return NextResponse.json(
+          {
+            error: `Record ${i}: field "${field}" exceeds maximum length of ${maxLen}`,
+            code: "FIELD_TOO_LONG",
+          },
+          { status: 400 },
+        );
+      }
+    }
   }
 
   // 6. Resolve or create the user's team

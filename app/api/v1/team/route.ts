@@ -164,6 +164,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "email is required" }, { status: 400 });
   }
 
+  // M-3: Basic email format validation before hitting the database.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!EMAIL_RE.test(email)) {
+    return NextResponse.json(
+      { error: "Invalid email address" },
+      { status: 400 },
+    );
+  }
+
   if (!["admin", "member"].includes(role)) {
     return NextResponse.json(
       { error: "role must be admin or member" },

@@ -36,10 +36,10 @@ export async function GET() {
           marginBottom: "16px",
         }}
       >
-        AI Coding Orchestration CLI
+        AI Dev FinOps
       </div>
       <div style={{ fontSize: "24px", color: "#4361EE" }}>
-        Plan the hunt. Run the pack.
+        See exactly what your AI tools cost.
       </div>
       <div
         style={{
@@ -50,11 +50,11 @@ export async function GET() {
           color: "#8A8A94",
         }}
       >
-        <span>17+ Specialist Agents</span>
+        <span>5 AI Tools</span>
         <span>|</span>
-        <span>415+ Tests</span>
+        <span>Real-Time Costs</span>
         <span>|</span>
-        <span>Free & Open Source</span>
+        <span>From $15/seat</span>
       </div>
     </div>,
     {

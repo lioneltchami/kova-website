@@ -65,54 +65,61 @@ function CopyInstallButton() {
 
 const TERMINAL_SCENARIOS = [
   {
-    title: "Plan",
+    title: "Track",
     steps: [
       {
-        command: 'kova plan "add user authentication"',
-        output: "Planning... (using opus model)",
+        command: "kova track",
+        output: "Scanning AI tool usage...",
       },
       {
-        command: "Analyzing codebase structure...",
-        output: "Plan created: .claude/tasks/user-auth.md",
+        command: "  claude-code   found ~/.claude/usage.jsonl",
+        output: "  cursor        found ~/.cursor/usage.log",
       },
       {
-        command: "Generating task graph...",
-        output:
-          "Tasks: 7 | Agents: 4 | Est. models: 2x haiku, 3x sonnet, 1x opus",
+        command: "  copilot       found ~/.config/copilot/telemetry.json",
+        output: "  windsurf      found ~/.windsurf/sessions/",
+      },
+      {
+        command: "Collected 47 records across 4 tools",
+        output: "Run: kova costs to see breakdown",
       },
     ],
   },
   {
-    title: "Build",
+    title: "Costs",
     steps: [
       {
-        command: "kova build --live",
-        output: "Building: user-auth",
+        command: "kova costs --week",
+        output: "AI spend for the last 7 days:",
       },
       {
-        command: "Dispatching agents...",
-        output: "[=====>          ] 3/7 tasks (42%)",
+        command: "  claude-code   $12.40   (tokens: 4.1M)",
+        output: "  cursor        $4.20    (requests: 312)",
       },
       {
-        command: "[done]  setup-schema       haiku   47s",
-        output: "[done]  build-api          sonnet  2m 18s",
+        command: "  copilot       $0.00    (subscription)",
+        output: "  windsurf      $2.80    (tokens: 890K)",
       },
       {
-        command: "[running] integration-tests  sonnet",
-        output: "Validation in progress...",
+        command: "  Total         $19.40",
+        output: "Budget used: 64% of $30/week",
       },
     ],
   },
   {
-    title: "Ship",
+    title: "Sync",
     steps: [
       {
-        command: "kova pr",
-        output: "Creating PR: Add User Authentication",
+        command: "kova sync",
+        output: "Uploading to dashboard...",
       },
       {
-        command: "Branch: feat/user-auth -> main",
-        output: "PR #42 created: github.com/org/repo/pull/42",
+        command: "  Local records: 47  |  Already synced: 32",
+        output: "  Uploading: 15 records",
+      },
+      {
+        command: "Sync complete",
+        output: "Dashboard: https://kova.dev/dashboard",
       },
     ],
   },
@@ -182,14 +189,14 @@ export function Hero() {
             className="block text-5xl sm:text-6xl md:text-7xl font-bold"
             gradient={{ from: "#C0C0C8", to: "#4361EE" }}
           >
-            Plan the hunt.
+            Know what AI costs.
           </GradientHeading>
           <GradientHeading
             as="span"
             className="block text-5xl sm:text-6xl md:text-7xl font-bold"
             gradient={{ from: "#C0C0C8", to: "#4361EE" }}
           >
-            Run the pack.
+            Before it adds up.
           </GradientHeading>
         </h1>
 
@@ -197,9 +204,9 @@ export function Hero() {
         <div className="mt-6 mb-10 text-lg sm:text-xl text-kova-silver-dim min-h-[2rem]">
           <Typewriter
             phrases={[
-              "Multi-agent AI orchestration for your codebase.",
-              "17 specialist agents. One CLI command.",
-              "Plan before you code. Validate independently.",
+              "Track AI spend across Claude Code, Cursor, and more.",
+              "5 AI tools. One CLI. Real-time cost visibility.",
+              "Catch budget overruns before they hit your bill.",
             ]}
             typingSpeed={55}
             deletingSpeed={25}
@@ -227,10 +234,10 @@ export function Hero() {
         {/* Subtle stats row */}
         <div className="mt-14 flex flex-wrap justify-center gap-8 text-sm text-kova-silver-dim">
           {[
-            ["17+", "Specialist Agents"],
-            ["11", "CLI Commands"],
-            ["6", "Plan Templates"],
-            ["3x", "Model Tiers"],
+            ["5", "AI Tools Tracked"],
+            ["$0", "To Start"],
+            ["Real-Time", "Cost Tracking"],
+            ["$15", "Per Seat / Month"],
           ].map(([num, label]) => (
             <div key={label} className="flex flex-col items-center gap-0.5">
               <span className="text-2xl font-bold text-kova-blue">{num}</span>

@@ -1,0 +1,150 @@
+---
+title: Usage Endpoint
+description: Upload usage records and export cost data via the Kova REST API
+---
+
+# Usage Endpoint
+
+The usage endpoint lets you upload raw usage records from any AI tool and export historical data as CSV.
+
+## POST /api/v1/usage
+
+Upload one or more usage records to the Kova cloud. Records are deduplicated server-side using a combination of `tool`, `timestamp`, and `session_id`, so it is safe to upload the same records multiple times.
+
+### Request
+
+```bash
+curl -X POST https://kova.dev/api/v1/usage \
+  -H "Authorization: Bearer kova_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "records": [
+      {
+        "tool": "claude-code",
+        "timestamp": "2026-03-19T14:00:00Z",
+        "session_id": "sess_abc123",
+        "model": "claude-sonnet-4-5",
+        "input_tokens": 12000,
+        "output_tokens": 3200,
+        "cost_usd": 0.084,
+        "duration_seconds": 47
+      }
+    ]
+  }'
+```
+
+### Request Body
+
+| Field     | Type  | Required | Description                                                 |
+| --------- | ----- | -------- | ----------------------------------------------------------- |
+| `records` | array | Yes      | Array of usage record objects. Max 500 records per request. |
+
+### Usage Record Fields
+
+| Field              | Type    | Required | Description                                                                          |
+| ------------------ | ------- | -------- | ------------------------------------------------------------------------------------ |
+| `tool`             | string  | Yes      | AI tool identifier. One of: `claude-code`, `cursor`, `copilot`, `windsurf`, `devin`. |
+| `timestamp`        | string  | Yes      | ISO 8601 timestamp of when the usage occurred.                                       |
+| `session_id`       | string  | Yes      | Unique identifier for the session or request. Used for deduplication.                |
+| `model`            | string  | No       | Model name, if applicable (e.g. `claude-sonnet-4-5`, `gpt-4o`).                      |
+| `input_tokens`     | integer | No       | Number of input/prompt tokens consumed.                                              |
+| `output_tokens`    | integer | No       | Number of output/completion tokens generated.                                        |
+| `cost_usd`         | number  | No       | Cost in USD for this record, as a float.                                             |
+| `duration_seconds` | integer | No       | Wall-clock duration of the session in seconds.                                       |
+| `metadata`         | object  | No       | Arbitrary key-value pairs for custom tagging (max 10 keys, 256 chars per value).     |
+
+### Response
+
+```json
+{
+  "data": {
+    "accepted": 15,
+    "duplicates": 2,
+    "rejected": 0
+  }
+}
+```
+
+| Field        | Description                                             |
+| ------------ | ------------------------------------------------------- |
+| `accepted`   | Records successfully stored.                            |
+| `duplicates` | Records that matched existing records and were skipped. |
+| `rejected`   | Records that failed validation.                         |
+
+### Error Codes
+
+| Status | Code               | Description                                                              |
+| ------ | ------------------ | ------------------------------------------------------------------------ |
+| 400    | `invalid_records`  | One or more records failed validation. Check `errors` array in response. |
+| 400    | `too_many_records` | Batch exceeds the 500-record limit. Split into smaller batches.          |
+| 400    | `body_too_large`   | Request body exceeds 10 MB.                                              |
+| 401    | `unauthorized`     | API key is missing, invalid, or revoked.                                 |
+| 429    | `rate_limited`     | Too many requests. See `Retry-After` header.                             |
+
+### Validation Error Response
+
+When records fail validation, the response includes an `errors` array identifying which records failed and why:
+
+```json
+{
+  "error": "invalid_records",
+  "data": {
+    "accepted": 13,
+    "duplicates": 0,
+    "rejected": 2
+  },
+  "errors": [
+    {
+      "index": 2,
+      "field": "tool",
+      "message": "Unknown tool 'vscode'. Expected one of: claude-code, cursor, copilot, windsurf, devin."
+    },
+    {
+      "index": 7,
+      "field": "timestamp",
+      "message": "Timestamp is in the future."
+    }
+  ]
+}
+```
+
+---
+
+## GET /api/v1/usage/export
+
+Export usage records as a CSV file. Useful for importing into spreadsheets or BI tools.
+
+### Request
+
+```bash
+curl -G https://kova.dev/api/v1/usage/export \
+  -H "Authorization: Bearer kova_your_api_key" \
+  --data-urlencode "since=2026-03-01" \
+  --data-urlencode "until=2026-03-19" \
+  --data-urlencode "tool=claude-code"
+```
+
+### Query Parameters
+
+| Parameter | Type   | Default     | Description                                       |
+| --------- | ------ | ----------- | ------------------------------------------------- |
+| `since`   | string | 30 days ago | Start date (ISO 8601 or `Nd` format, e.g. `7d`).  |
+| `until`   | string | now         | End date (ISO 8601).                              |
+| `tool`    | string | all         | Filter to a specific tool.                        |
+| `format`  | string | `csv`       | Output format. Currently only `csv` is supported. |
+
+### Response
+
+Returns a CSV file with `Content-Type: text/csv` and a `Content-Disposition` header suggesting a filename.
+
+```
+tool,timestamp,session_id,model,input_tokens,output_tokens,cost_usd,duration_seconds
+claude-code,2026-03-19T14:00:00Z,sess_abc123,claude-sonnet-4-5,12000,3200,0.084,47
+cursor,2026-03-19T13:30:00Z,sess_xyz789,,0,0,4.20,1800
+```
+
+## Related
+
+- [API Overview](/docs/api/overview) - Authentication and response formats
+- [Rate Limits](/docs/api/rate-limits) - Request limits and retry guidance
+- [kova sync](/docs/commands/sync) - CLI command that calls this endpoint
