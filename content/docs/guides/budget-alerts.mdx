@@ -1,0 +1,117 @@
+---
+title: Budget Alerts
+description: Set monthly spending limits and monitor alerts from the Kova dashboard
+---
+
+# Budget Alerts
+
+Kova lets you set monthly spending budgets and warns you before you overspend. Alerts appear on the dashboard Budget page and in the CLI. Email and Slack notifications are planned for a future release.
+
+A Pro plan is required to use budgets.
+
+## Setting a Budget
+
+Use `kova budget` to create or update a monthly spending limit:
+
+```bash
+kova budget --monthly 500
+```
+
+```
+Budget set
+  Period:    monthly
+  Limit:     $500.00
+  Warn at:   80% ($400.00)
+  Resets:    1st of each month
+```
+
+By default, Kova warns you when you reach 80% of your limit. Adjust the warning threshold with `--warn-at`:
+
+```bash
+kova budget --monthly 500 --warn-at 70
+```
+
+This warns when spending reaches $350 (70% of $500).
+
+### Per-Project Budgets
+
+Set a budget scoped to a specific project:
+
+```bash
+kova budget --monthly 100 --project api-rewrite
+```
+
+Project budgets are tracked independently of your overall monthly limit.
+
+### Viewing Current Budgets
+
+```bash
+kova budget
+```
+
+```
+Budgets -- March 2026
+────────────────────────────────────────────────────────
+Scope          Limit     Spent    % Used   Status
+overall        $500.00   $142.40  28%      OK
+api-rewrite    $100.00   $87.20   87%      WARNING
+────────────────────────────────────────────────────────
+```
+
+## Dashboard Monitoring
+
+The **Budget** page in the dashboard shows all active budgets with a real-time progress bar. Budgets update each time you run `kova sync`.
+
+The page displays:
+
+- Current spend vs. limit for each budget
+- A color-coded status indicator: green (under warn threshold), yellow (warn threshold reached), red (limit exceeded)
+- Days remaining in the billing period
+
+Navigate to it at **Dashboard > Budget** or go directly to `kova.dev/dashboard/budget`.
+
+## Alert History
+
+The Budget page includes an **Alert History** table listing every threshold crossing:
+
+| Date       | Budget       | Event              | Spend at Alert |
+| ---------- | ------------ | ------------------ | -------------- |
+| 2026-03-18 | overall      | Warn threshold hit | $401.20        |
+| 2026-03-15 | api-rewrite  | Warn threshold hit | $72.40         |
+
+Alert history is retained for 90 days.
+
+## CLI Alerts
+
+When your spend crosses a budget threshold, `kova sync` and `kova costs` print a warning inline:
+
+```
+Warning: overall budget at 85% ($425 / $500)
+         api-rewrite budget exceeded ($103 / $100)
+```
+
+## Notification Channels
+
+Currently, alerts are visible in the dashboard and CLI only.
+
+Email and Slack notifications are planned and will be available in a future release. To stay informed, watch the [changelog](https://kova.dev/changelog).
+
+## Resetting or Removing a Budget
+
+Remove a budget by setting its limit to zero:
+
+```bash
+kova budget --monthly 0
+```
+
+Or remove a project budget:
+
+```bash
+kova budget --monthly 0 --project api-rewrite
+```
+
+## Related
+
+- [kova budget](/docs/commands/budget) - Full CLI budget command reference
+- [kova sync](/docs/commands/sync) - Push records to refresh dashboard budget data
+- [Team dashboard setup](/docs/guides/team-dashboard-setup) - Set team-wide budgets

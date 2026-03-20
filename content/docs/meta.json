@@ -9,17 +9,19 @@
     "---Commands---",
     "commands/track",
     "commands/costs",
-    "commands/budget",
     "commands/sync",
-    "commands/report",
+    "commands/budget",
     "commands/config",
+    "commands/report",
+    "commands/login",
+    "commands/logout",
+    "commands/account",
     "commands/completions",
     "---Guides---",
     "guides/multi-tool-tracking",
     "guides/team-dashboard-setup",
-    "guides/budget-alerts",
     "guides/token-tracking",
-    "guides/webhook-notifications",
-    "guides/cross-platform"
+    "guides/auto-sync",
+    "guides/budget-alerts"
   ]
 }

@@ -1,7 +1,7 @@
-import { createClient } from "@/utils/supabase/server";
-import { formatRelativeDate } from "@/lib/dashboard-utils";
-import { ApiKeyManager } from "@/components/dashboard/api-key-manager";
 import Link from "next/link";
+import { ApiKeyManager } from "@/components/dashboard/api-key-manager";
+import { formatRelativeDate } from "@/lib/dashboard-utils";
+import { createClient } from "@/utils/supabase/server";
 
 export const metadata = {
   title: "Settings",
@@ -141,6 +141,14 @@ export default async function SettingsPage() {
             </li>
           ))}
         </ol>
+        <p className="text-xs text-kova-silver-dim mt-4">
+          After running{" "}
+          <code className="text-kova-blue font-mono bg-kova-charcoal-light px-1.5 rounded">
+            kova sync
+          </code>
+          , the &quot;Last sync&quot; date on your API key will update to
+          reflect the most recent upload.
+        </p>
       </section>
     </div>
   );

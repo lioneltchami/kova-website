@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { CheckoutSuccessToast } from "@/components/dashboard/checkout-success-toast";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { createClient } from "@/utils/supabase/server";
 
@@ -27,6 +29,9 @@ export default async function DashboardLayout({
         plan={profile?.plan ?? "free"}
       />
       <main className="flex-1 p-6 md:p-8 overflow-auto">{children}</main>
+      <Suspense fallback={null}>
+        <CheckoutSuccessToast />
+      </Suspense>
     </div>
   );
 }

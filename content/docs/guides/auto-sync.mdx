@@ -1,0 +1,121 @@
+---
+title: Automatic Sync
+description: Keep your Kova dashboard current without manual effort using daemon mode, cron, or Windows Task Scheduler
+---
+
+# Automatic Sync
+
+Running `kova track` and `kova sync` manually works fine, but for day-to-day use you want the dashboard to stay current on its own. This guide covers three approaches: daemon mode (simplest), cron (Linux/macOS), and Windows Task Scheduler.
+
+## Daemon Mode
+
+The quickest option. Run the following once and leave the terminal open (or start it in a terminal multiplexer like `tmux` or `screen`):
+
+```bash
+kova track --daemon --auto-sync
+```
+
+Kova scans all enabled collectors every 15 minutes and pushes new records to the dashboard automatically. Terminate with `Ctrl+C`.
+
+This approach is ideal for workstations where you can leave a terminal session running in the background.
+
+## Cron (Linux and macOS)
+
+For a set-and-forget setup that survives reboots, add a cron job.
+
+Open your crontab:
+
+```bash
+crontab -e
+```
+
+### Scan and Sync Every 30 Minutes
+
+```bash
+*/30 * * * * /usr/local/bin/kova track && /usr/local/bin/kova sync >> ~/.kova/auto-sync.log 2>&1
+```
+
+### Sync Once a Day at 6 PM
+
+If you prefer a lighter-touch approach:
+
+```bash
+0 18 * * * /usr/local/bin/kova track && /usr/local/bin/kova sync >> ~/.kova/auto-sync.log 2>&1
+```
+
+### Sync After Every Reboot
+
+```bash
+@reboot sleep 30 && /usr/local/bin/kova track --daemon --auto-sync >> ~/.kova/daemon.log 2>&1
+```
+
+The `sleep 30` gives the system time to establish a network connection before the first sync attempt.
+
+### Finding the kova Binary Path
+
+If you are unsure of the full path to `kova`, run:
+
+```bash
+which kova
+```
+
+Use the output in your crontab entries.
+
+## Windows Task Scheduler
+
+On Windows, use Task Scheduler to run `kova track --auto-sync` on a schedule.
+
+1. Open **Task Scheduler** (search for it in the Start menu)
+2. Click **Create Basic Task** in the Actions panel
+3. Name it `Kova Auto Sync` and click **Next**
+4. Choose a trigger -- **Daily** or **When I log on** are good starting points
+5. Set the action to **Start a Program**
+6. In the **Program/script** field, enter the full path to `kova.exe`:
+   ```
+   C:\Users\YourName\AppData\Roaming\npm\kova.cmd
+   ```
+7. In the **Add arguments** field, enter:
+   ```
+   track --auto-sync
+   ```
+8. Click **Finish**
+
+To find your `kova` path on Windows:
+
+```powershell
+where kova
+```
+
+### Running Every 30 Minutes on Windows
+
+The Basic Task wizard only supports daily triggers. For sub-daily intervals:
+
+1. Create the task as above with a Daily trigger
+2. Open **Task Scheduler Library**, right-click the task, and select **Properties**
+3. On the **Triggers** tab, edit the trigger
+4. Check **Repeat task every** and set it to **30 minutes**
+5. Set **for a duration of** to **Indefinitely**
+
+## Checking Sync Status
+
+View the last sync timestamp and a summary of recent uploads:
+
+```bash
+kova sync --dry-run
+```
+
+```
+Dry run -- no data will be sent
+
+  Would upload: 0 records (all up to date)
+  Last sync:    2026-03-19T18:00:01Z
+  Dashboard:    kova.dev/dashboard
+```
+
+If the last sync timestamp is stale, your scheduled task may not be running. Check the log file at `~/.kova/auto-sync.log` for errors.
+
+## Related
+
+- [kova track](/docs/commands/track) - Manual scan and daemon mode reference
+- [kova sync](/docs/commands/sync) - Upload records reference
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Configure collectors for all tools

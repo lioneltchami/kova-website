@@ -13,12 +13,21 @@ interface ApiKey {
 }
 
 function formatDate(dateStr: string | null) {
-  if (!dateStr) return "Never";
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  if (!dateStr) return "Never synced";
+  const date = new Date(dateStr);
+  return (
+    date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }) +
+    " at " +
+    date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+  );
 }
 
 export function ApiKeyManager() {
@@ -160,7 +169,7 @@ export function ApiKeyManager() {
                 <p className="text-xs text-kova-silver-dim font-mono mt-0.5">
                   {key.key_prefix}...{" "}
                   <span className="ml-2">
-                    Last used: {formatDate(key.last_used_at)}
+                    Last sync: {formatDate(key.last_used_at)}
                   </span>
                 </p>
               </div>

@@ -231,6 +231,18 @@ function PricingCard({
         {ctaLabel}
       </Link>
 
+      {tier.slug === "enterprise" && (
+        <p className="mt-2 text-center text-xs text-kova-silver-dim">
+          Contact us for custom enterprise agreements at{" "}
+          <a
+            href="mailto:enterprise@kova.dev"
+            className="text-kova-blue hover:underline"
+          >
+            enterprise@kova.dev
+          </a>
+        </p>
+      )}
+
       <ul className="mt-6 space-y-3 border-t border-kova-border pt-6">
         {tier.features.map((feature) => (
           <li key={feature} className="flex items-start gap-2.5">

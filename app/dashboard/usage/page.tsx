@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { CsvExportButton } from "@/components/dashboard/csv-export-button";
 import {
   type DateRange,
   DateRangePicker,
@@ -102,9 +103,17 @@ export default async function UsagePage({ searchParams }: UsagePageProps) {
             Detailed AI tool usage records
           </p>
         </div>
-        <Suspense fallback={null}>
-          <DateRangePicker />
-        </Suspense>
+        <div className="flex items-center gap-3">
+          <CsvExportButton
+            range={range}
+            tool={toolFilter}
+            model={modelFilter}
+            project={projectSearch}
+          />
+          <Suspense fallback={null}>
+            <DateRangePicker />
+          </Suspense>
+        </div>
       </div>
 
       {/* Filters */}

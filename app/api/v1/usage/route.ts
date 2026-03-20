@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase-admin";
+import { checkRateLimit } from "./rate-limit";
 
 // POST /api/v1/usage -- CLI uploads usage records, authenticated via Bearer API key
 //
@@ -23,12 +24,23 @@ import { createAdminClient } from "@/lib/supabase-admin";
 //
 // Response: { accepted: number, duplicates: number, errors: number }
 
+const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
+
 export async function POST(request: NextRequest) {
-  // 1. Extract and validate Bearer token
+  // 1. Content-length guard -- reject oversized payloads before reading the body
+  const contentLength = request.headers.get("content-length");
+  if (contentLength !== null && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { error: "Payload too large (max 10 MB)", code: "PAYLOAD_TOO_LARGE" },
+      { status: 413 },
+    );
+  }
+
+  // 2. Extract and validate Bearer token
   const authHeader = request.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return NextResponse.json(
-      { error: "Missing Bearer token" },
+      { error: "Missing Bearer token", code: "MISSING_AUTH" },
       { status: 401 },
     );
   }
@@ -36,13 +48,16 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  // 2. Verify API key via service-role RPC (private schema function)
+  // 3. Verify API key via service-role RPC (private schema function)
   const { data: keyData, error: keyError } = await admin.rpc("verify_api_key", {
     p_key: apiKey,
   });
 
   if (keyError || !keyData || keyData.length === 0 || !keyData[0].valid) {
-    return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Invalid API key", code: "INVALID_API_KEY" },
+      { status: 401 },
+    );
   }
 
   const { account_id: userId } = keyData[0] as {
@@ -52,28 +67,55 @@ export async function POST(request: NextRequest) {
     account_plan: string;
   };
 
-  // 3. Parse and validate body
+  // 4. Rate limit check -- keyed by first 8 chars of the API key
+  const keyPrefix = apiKey.slice(0, 8);
+  const rateLimit = checkRateLimit(keyPrefix);
+
+  if (!rateLimit.allowed) {
+    const retryAfterSeconds = Math.ceil(
+      (rateLimit.resetAt - Date.now()) / 1000,
+    );
+    return NextResponse.json(
+      { error: "Rate limit exceeded", code: "RATE_LIMIT" },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(retryAfterSeconds),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(rateLimit.resetAt),
+        },
+      },
+    );
+  }
+
+  // 5. Parse and validate body
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid JSON body", code: "INVALID_BODY" },
+      { status: 400 },
+    );
   }
 
   const records = body.records as unknown[];
 
   if (!Array.isArray(records) || records.length === 0) {
-    return NextResponse.json({ error: "No records provided" }, { status: 400 });
-  }
-
-  if (records.length > 500) {
     return NextResponse.json(
-      { error: "Maximum 500 records per request" },
+      { error: "No records provided", code: "NO_RECORDS" },
       { status: 400 },
     );
   }
 
-  // 4. Resolve or create the user's team
+  if (records.length > 500) {
+    return NextResponse.json(
+      { error: "Maximum 500 records per request", code: "TOO_MANY_RECORDS" },
+      { status: 400 },
+    );
+  }
+
+  // 6. Resolve or create the user's team
   //    Users who have not been added to any team get an auto-created personal workspace.
   const { data: membership } = await admin
     .from("team_members")
@@ -103,7 +145,7 @@ export async function POST(request: NextRequest) {
     if (teamError || !team) {
       console.error("Personal team creation error:", teamError);
       return NextResponse.json(
-        { error: "Failed to resolve team" },
+        { error: "Failed to resolve team", code: "TEAM_RESOLVE_FAILED" },
         { status: 500 },
       );
     }
@@ -122,7 +164,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 5. Upload records via service-role RPC (handles deduplication internally)
+  // 7. Upload records via service-role RPC (handles deduplication internally)
   const { data: result, error: uploadError } = await admin.rpc(
     "upload_usage_records",
     {
@@ -135,12 +177,16 @@ export async function POST(request: NextRequest) {
   if (uploadError) {
     console.error("upload_usage_records RPC error:", uploadError);
     return NextResponse.json(
-      { error: "Upload failed", details: uploadError.message },
+      {
+        error: "Upload failed",
+        details: uploadError.message,
+        code: "UPLOAD_FAILED",
+      },
       { status: 500 },
     );
   }
 
-  // 6. Touch last_used_at on the API key (best-effort, non-fatal)
+  // 8. Touch last_used_at on the API key (best-effort, non-fatal)
   //    The verify_api_key function already does this, so this is a no-op safety net
   //    in case the verify function is updated to skip the update.
   await admin
@@ -154,6 +200,12 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(
     { accepted, duplicates, errors: 0 },
-    { status: 201 },
+    {
+      status: 201,
+      headers: {
+        "X-RateLimit-Remaining": String(rateLimit.remaining),
+        "X-RateLimit-Reset": String(rateLimit.resetAt),
+      },
+    },
   );
 }

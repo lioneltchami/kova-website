@@ -1,11 +1,13 @@
 ---
 title: kova track
-description: Manually record a usage event from any AI tool into Kova's local cost store
+description: Scan AI tool data directories and record usage events into Kova's local cost store
 ---
 
 # kova track
 
-Record a single AI tool usage event. This command writes an entry to the local usage store at `~/.kova/usage/`. Collectors call this automatically in the background; use it directly to add events from tools that do not yet have a native collector or to test your setup.
+Scan local AI tool data directories and write usage records to `~/.kova/usage/`. Running `kova track` without flags scans all enabled collectors and processes any new events since the last scan.
+
+You do not need to pass token counts manually -- Kova reads them from each tool's own data files. Use the manual flags only if you need to backfill an event from a tool that has no native collector.
 
 ## Usage
 
@@ -15,33 +17,59 @@ kova track [flags]
 
 ## Flags
 
-| Flag              | Type   | Required | Description                                                              |
-| ----------------- | ------ | -------- | ------------------------------------------------------------------------ |
-| `--tool`          | string | Yes      | Tool identifier: `claude-code`, `cursor`, `copilot`, `windsurf`, `devin` |
-| `--model`         | string | Yes      | Model name (e.g. `claude-sonnet-4-5`, `gpt-4o`)                          |
-| `--input-tokens`  | number | Yes      | Number of input/prompt tokens                                            |
-| `--output-tokens` | number | Yes      | Number of output/completion tokens                                       |
-| `--cost`          | number | Yes      | Total cost in USD for this event                                         |
-| `--project`       | string | No       | Project name (used for cost grouping)                                    |
-| `--session-id`    | string | No       | Session identifier for grouping related events                           |
-| `--duration-ms`   | number | No       | Duration of the API call in milliseconds                                 |
-| `--at`            | string | No       | Timestamp for the event (ISO 8601, defaults to now)                      |
+| Flag              | Type    | Default | Description                                                              |
+| ----------------- | ------- | ------- | ------------------------------------------------------------------------ |
+| `--tool`          | string  | all     | Only scan this tool: `claude_code`, `cursor`, `copilot`, `windsurf`, `devin` |
+| `--daemon`        | boolean | false   | Run continuously in the background, scanning on a regular interval       |
+| `--auto-sync`     | boolean | false   | After each scan, automatically run `kova sync` to push records to the dashboard |
+| `--model`         | string  | --      | (Manual) Model name for a single event (e.g. `claude-sonnet-4-5`)       |
+| `--input-tokens`  | number  | --      | (Manual) Input/prompt token count for a single event                    |
+| `--output-tokens` | number  | --      | (Manual) Output/completion token count for a single event               |
+| `--cost`          | number  | --      | (Manual) Total cost in USD for a single event                           |
+| `--project`       | string  | --      | (Manual) Project name for cost grouping                                 |
+| `--session-id`    | string  | --      | (Manual) Session identifier for grouping related events                 |
+| `--duration-ms`   | number  | --      | (Manual) Duration of the API call in milliseconds                       |
+| `--at`            | string  | now     | (Manual) Timestamp for a single event (ISO 8601)                        |
 
 ## Examples
 
-### Record a Claude Code Session
+### Scan All Tools
 
 ```bash
-kova track \
-  --tool claude-code \
-  --model claude-sonnet-4-5 \
-  --input-tokens 12500 \
-  --output-tokens 3200 \
-  --cost 0.045 \
-  --project my-app
+kova track
 ```
 
-### Record a Cursor Completion
+```
+Scanning collectors...
+  claude_code   12 new events   $4.82
+  cursor         5 new events   $1.20
+  copilot        0 new events
+  windsurf       2 new events   $0.31
+
+Recorded 19 events. Run `kova sync` to upload.
+```
+
+### Scan a Single Tool
+
+```bash
+kova track --tool claude_code
+```
+
+### Run as a Background Daemon with Auto-Sync
+
+Keep the dashboard current automatically without any manual steps:
+
+```bash
+kova track --daemon --auto-sync
+```
+
+The daemon scans all enabled collectors on a regular interval (default: every 15 minutes) and syncs new records to the cloud after each pass. Terminate with `Ctrl+C`.
+
+For a system-level setup that survives reboots, see the [Automatic Sync guide](/docs/guides/auto-sync).
+
+### Manual Event (Backfill)
+
+Use the manual flags to add an event from a tool that has no native collector:
 
 ```bash
 kova track \
@@ -52,9 +80,7 @@ kova track \
   --cost 0.003
 ```
 
-### Backfill a Historical Event
-
-Use `--at` to record an event at a specific time (useful for backfilling from log files):
+Backfill a historical event with a specific timestamp:
 
 ```bash
 kova track \
@@ -66,24 +92,13 @@ kova track \
   --at "2026-03-15T14:30:00Z"
 ```
 
-## Output
-
-```
-Recorded usage event
-  Tool:    claude-code
-  Model:   claude-sonnet-4-5
-  Tokens:  12,500 in / 3,200 out
-  Cost:    $0.045
-  Project: my-app
-  Stored:  ~/.kova/usage/2026-03/
-```
-
 ## How Events Are Stored
 
-Events are stored as newline-delimited JSON in `~/.kova/usage/YYYY-MM/records.jsonl`. Each event gets a unique ID based on a hash of the tool, timestamp, and token counts. This makes uploads idempotent -- running `kova sync` multiple times will not create duplicate records in the cloud.
+Events are written as newline-delimited JSON to `~/.kova/usage/YYYY-MM/records.jsonl`. Each event gets a unique ID derived from a hash of the tool, timestamp, and token counts, making uploads idempotent -- running `kova sync` multiple times will not create duplicate records in the cloud.
 
 ## Related
 
 - [kova sync](/docs/commands/sync) - Upload local records to the cloud dashboard
 - [kova costs](/docs/commands/costs) - View cost breakdowns
-- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Auto-collect from all tools
+- [Automatic Sync](/docs/guides/auto-sync) - Run tracking continuously with daemon mode or cron
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Configure collectors for all tools

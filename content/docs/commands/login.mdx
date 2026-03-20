@@ -1,0 +1,101 @@
+---
+title: kova login
+description: Authenticate the Kova CLI with your API key
+---
+
+# kova login
+
+Store your Kova API key locally so all other CLI commands can authenticate with the dashboard. The key is written to `~/.kova/credentials.json` and is never sent anywhere except the Kova API.
+
+## Usage
+
+```bash
+kova login [api-key]
+```
+
+Run without an argument to see where to get your key:
+
+```bash
+kova login
+```
+
+```
+Get your API key from kova.dev/dashboard/settings
+Then run: kova login <your-api-key>
+```
+
+## Arguments
+
+| Argument  | Required | Description                                    |
+| --------- | -------- | ---------------------------------------------- |
+| `api-key` | No       | Your Kova API key from the dashboard settings  |
+
+## Examples
+
+### Authenticate
+
+```bash
+kova login kv_live_abc123xyz
+```
+
+```
+Validating API key...
+Logged in successfully.
+Plan: pro
+Dashboard: kova.dev/dashboard
+```
+
+### Re-authenticate
+
+If you are already logged in, running `kova login` again replaces the stored credentials:
+
+```bash
+kova login kv_live_newkey456
+```
+
+```
+Already logged in. Updating credentials...
+Validating API key...
+Logged in successfully.
+Plan: pro
+Dashboard: kova.dev/dashboard
+```
+
+### Network Unavailable
+
+If the validation request fails (no internet or key cannot be checked), the key is stored anyway and validated on the next API call:
+
+```bash
+kova login kv_live_abc123xyz
+```
+
+```
+Could not validate API key (network unavailable or key invalid).
+Credentials stored. They will be validated on the next build upload.
+If your key is invalid, dashboard uploads will silently fail.
+```
+
+## Credentials File
+
+The API key and plan information are stored at:
+
+```
+~/.kova/credentials.json
+```
+
+This file is created or overwritten by `kova login`. Do not add it to version control.
+
+## Getting an API Key
+
+1. Sign in at [kova.dev](https://kova.dev)
+2. Go to **Dashboard > Settings > API Keys**
+3. Click **Create API Key**
+4. Copy the key and pass it to `kova login`
+
+Keys beginning with `kv_live_` are production keys. Keys beginning with `kv_test_` are for testing and will not count usage toward billing.
+
+## Related
+
+- [kova logout](/docs/commands/logout) - Remove stored credentials
+- [kova account](/docs/commands/account) - View account and plan info
+- [kova sync](/docs/commands/sync) - Upload usage records (requires login)

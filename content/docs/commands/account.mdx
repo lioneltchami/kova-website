@@ -1,0 +1,66 @@
+---
+title: kova account
+description: Display account information and current subscription plan
+---
+
+# kova account
+
+Show the account details stored in your local credentials: plan tier, email, API key prefix, and dashboard URL. All information is read from the cached credentials file at `~/.kova/credentials.json` -- no network request is made.
+
+## Usage
+
+```bash
+kova account
+```
+
+## Examples
+
+### Logged In
+
+```bash
+kova account
+```
+
+```
+Kova Account
+────────────────────────────────
+plan       pro
+email      alice@company.com
+api key    kv_live_abc123x...
+dashboard  kova.dev/dashboard
+────────────────────────────────
+
+Manage your account at kova.dev/dashboard/settings
+```
+
+### Not Logged In
+
+If no credentials are stored, `kova account` shows the free plan and prompts you to log in:
+
+```bash
+kova account
+```
+
+```
+Kova Account
+────────────────────────────────
+plan       Free
+status     not logged in
+────────────────────────────────
+
+Upgrade to Pro for team cost dashboard and budget alerts.
+Get started at kova.dev/dashboard
+Then run: kova login <your-api-key>
+```
+
+## Notes
+
+- The API key is shown as a truncated prefix (`kv_live_abc123x...`) for security.
+- Email and dashboard URL are cached at login time. If your email changes on the server side, run `kova login` again to refresh the cached credentials.
+- `kova account` never makes a network request. To verify your key is still valid on the server, run `kova sync --dry-run`.
+
+## Related
+
+- [kova login](/docs/commands/login) - Authenticate the CLI
+- [kova logout](/docs/commands/logout) - Remove stored credentials
+- [kova sync](/docs/commands/sync) - Upload usage records to the dashboard
