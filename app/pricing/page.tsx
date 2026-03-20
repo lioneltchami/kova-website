@@ -80,6 +80,33 @@ const tiers: PricingTier[] = [
   },
 ];
 
+const faqs = [
+  {
+    q: "Can I cancel anytime?",
+    a: "Yes. Cancel your subscription at any time from the dashboard. You'll keep access until the end of your billing period.",
+  },
+  {
+    q: "What counts as a seat?",
+    a: "Each developer who runs kova track and syncs data to the dashboard counts as one seat. API keys are per-developer.",
+  },
+  {
+    q: "How does the free plan differ from Pro?",
+    a: "Free gives you 1 tool (Claude Code), 30-day local history, and basic cost tracking. Pro unlocks all 5 AI tools, 1-year cloud history, team dashboard, budget alerts, and cost forecasting.",
+  },
+  {
+    q: "Do you support annual billing?",
+    a: "Yes. Annual billing saves you 20% compared to monthly. Toggle the billing switch on any plan to see annual pricing.",
+  },
+  {
+    q: "What AI tools are supported?",
+    a: "Kova tracks Claude Code, Cursor, GitHub Copilot, Windsurf, and Devin. More tools are added regularly.",
+  },
+  {
+    q: "Is my data secure?",
+    a: "All data is encrypted in transit and at rest. We use Supabase with Row Level Security, rate limiting, and HTTPS enforcement. Your usage data is never shared with third parties.",
+  },
+];
+
 function PriceDisplay({
   tier,
   billing,
@@ -332,6 +359,27 @@ export default function PricingPage() {
             </div>
           </div>
 
+          {/* Social proof banner */}
+          <div className="text-center mb-12">
+            <p className="text-kova-silver-dim text-sm">
+              Trusted by developer teams tracking their AI costs
+            </p>
+            <div className="flex justify-center gap-8 mt-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-kova-silver">5</p>
+                <p className="text-xs text-kova-silver-dim">AI Tools Tracked</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-kova-silver">$0</p>
+                <p className="text-xs text-kova-silver-dim">To Get Started</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-kova-silver">100%</p>
+                <p className="text-xs text-kova-silver-dim">Cost Visibility</p>
+              </div>
+            </div>
+          </div>
+
           {/* Pricing grid -- 3 tiers */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             {tiers.map((tier) => (
@@ -350,6 +398,44 @@ export default function PricingPage() {
             All prices in USD per seat. Annual plans billed yearly. Cancel
             anytime. Enterprise pricing scales linearly with seat count.
           </p>
+
+          {/* Start Free CTA */}
+          <div className="text-center py-8">
+            <p className="text-kova-silver-dim text-sm mb-3">Not sure yet?</p>
+            <a
+              href="/docs/getting-started/installation"
+              className="text-kova-blue hover:text-kova-blue-light text-lg font-semibold transition-colors"
+            >
+              Start free, upgrade when ready &rarr;
+            </a>
+          </div>
+
+          {/* FAQ */}
+          <div className="mt-4 max-w-2xl mx-auto pb-8">
+            <h2 className="text-xl font-bold text-white text-center mb-6">
+              Frequently Asked Questions
+            </h2>
+            <div className="space-y-2">
+              {faqs.map((faq) => (
+                <details
+                  key={faq.q}
+                  className="group rounded-xl border border-kova-border bg-kova-surface overflow-hidden"
+                >
+                  <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer text-sm font-medium text-kova-silver hover:text-white transition-colors list-none select-none">
+                    <span>{faq.q}</span>
+                    <span className="shrink-0 text-kova-silver-dim text-lg leading-none group-open:rotate-45 transition-transform duration-200">
+                      +
+                    </span>
+                  </summary>
+                  <div className="px-5 pb-4">
+                    <p className="text-sm text-kova-silver-dim leading-relaxed">
+                      {faq.a}
+                    </p>
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

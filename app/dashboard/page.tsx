@@ -5,8 +5,11 @@ import {
   DateRangePicker,
   getDateRangeStart,
 } from "@/components/dashboard/date-range-picker";
+import { ForecastCard } from "@/components/dashboard/forecast-card";
+import { ForecastChart } from "@/components/dashboard/forecast-chart";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { ToolComparisonChart } from "@/components/dashboard/tool-comparison-chart";
+import { forecastCosts } from "@/lib/forecasting";
 import {
   formatCost,
   formatRelativeDate,
@@ -169,6 +172,10 @@ export default async function DashboardOverview({
     .map(([date, cost]) => ({ date, cost }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
+  // --- Forecasting: run on the daily cost trend series ---
+  const forecast = forecastCosts(costTrendData, 30);
+  const hasForecast = forecast !== null;
+
   // --- Tool comparison data (from range rollup) ---
   const toolComparisonData = toolCostEntries.map(([tool, cost]) => ({
     tool,
@@ -190,7 +197,7 @@ export default async function DashboardOverview({
         </Suspense>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards -- includes ForecastCard if data is sufficient */}
       <Suspense
         fallback={
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -210,6 +217,25 @@ export default async function DashboardOverview({
             budgetUsedPercent={budgetUsedPercent}
             prevMonthSpend={prevMonthSpend}
           />
+
+          {/* Forecast card added below existing KPI cards when data is available */}
+          {hasForecast ? (
+            <div className="mt-4">
+              <ForecastCard
+                forecast={forecast}
+                dataPointCount={costTrendData.length}
+              />
+            </div>
+          ) : (
+            <div className="mt-4 bg-kova-surface border border-kova-border rounded-xl p-6">
+              <p className="text-xs text-kova-silver-dim uppercase tracking-wider mb-1">
+                Projected This Month
+              </p>
+              <p className="text-sm text-kova-silver-dim mt-2">
+                Need 14+ days of data for forecast
+              </p>
+            </div>
+          )}
         </div>
       </Suspense>
 
@@ -223,7 +249,14 @@ export default async function DashboardOverview({
             <p className="text-xs text-kova-silver-dim mb-4">
               Spend over the selected period
             </p>
-            <CostTrendChart data={costTrendData} />
+            {hasForecast ? (
+              <ForecastChart
+                historicalData={costTrendData}
+                forecast={forecast}
+              />
+            ) : (
+              <CostTrendChart data={costTrendData} />
+            )}
           </div>
         </Suspense>
 

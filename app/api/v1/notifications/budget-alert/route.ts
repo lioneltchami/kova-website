@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { sendBudgetAlertEmail } from "@/lib/resend";
+import { buildBudgetAlertBlocks, sendSlackNotification } from "@/lib/slack";
 import { createAdminClient } from "@/lib/supabase-admin";
 
 // Internal endpoint: POST /api/v1/notifications/budget-alert
@@ -69,17 +70,22 @@ export async function POST(request: NextRequest) {
 
     const { data: profile } = await admin
       .from("profiles")
-      .select("email")
+      .select("email, notification_preferences")
       .eq("id", ownerMember.user_id)
       .single();
 
     const email = profile?.email;
     if (!email) continue;
 
+    // Respect per-user budget alert preference (defaults to true for existing rows)
+    const budgetAlertsEnabled =
+      profile?.notification_preferences?.budget_alerts !== false;
+    if (!budgetAlertsEnabled) continue;
+
     // Look up team name for the email body.
     const { data: team } = await admin
       .from("teams")
-      .select("name")
+      .select("name, slack_webhook_url")
       .eq("id", alert.team_id)
       .single();
 
@@ -90,6 +96,10 @@ export async function POST(request: NextRequest) {
       .eq("id", alert.budget_id)
       .single();
 
+    const percentUsed = Math.round(
+      (Number(alert.current_spend) / Number(alert.budget_amount)) * 100,
+    );
+
     const success = await sendBudgetAlertEmail({
       to: email,
       teamName: team?.name ?? "Your team",
@@ -98,6 +108,21 @@ export async function POST(request: NextRequest) {
       currentSpend: Number(alert.current_spend),
       thresholdPercent: alert.threshold_pct,
     });
+
+    // Send Slack notification if team has webhook configured
+    if (team?.slack_webhook_url) {
+      const blocks = buildBudgetAlertBlocks({
+        teamName: team.name ?? "Your team",
+        period: budget?.period ?? "monthly",
+        budgetAmount: Number(alert.budget_amount),
+        currentSpend: Number(alert.current_spend),
+        dashboardUrl: "https://kova.dev/dashboard/budget",
+      });
+      await sendSlackNotification(team.slack_webhook_url, {
+        text: `Budget alert: ${percentUsed}% used`,
+        blocks,
+      });
+    }
 
     if (success) {
       await admin

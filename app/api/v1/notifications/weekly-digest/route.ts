@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   // Get all Pro/Enterprise users (digests only sent to paying subscribers)
   const { data: profiles } = await admin
     .from("profiles")
-    .select("id, email, plan")
+    .select("id, email, plan, notification_preferences")
     .in("plan", ["pro", "enterprise"]);
 
   if (!profiles?.length) {
@@ -62,6 +62,11 @@ export async function POST(request: NextRequest) {
       .eq("user_id", profile.id)
       .gte("date", prevWeekStart)
       .lt("date", weekStart);
+
+    // Respect per-user weekly digest preference (defaults to true for existing rows)
+    const weeklyDigestEnabled =
+      profile.notification_preferences?.weekly_digest !== false;
+    if (!weeklyDigestEnabled) continue;
 
     if (!thisWeek?.length) continue;
 

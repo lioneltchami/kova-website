@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { BudgetForm } from "@/components/dashboard/budget-form";
 import { BudgetVsActualChart } from "@/components/dashboard/budget-vs-actual-chart";
+import { UpgradeNudge } from "@/components/dashboard/upgrade-nudge";
 import { formatCost, formatRelativeDate } from "@/lib/dashboard-utils";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -16,6 +17,14 @@ export default async function BudgetPage() {
   } = await supabase.auth.getUser();
 
   if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+
+  const plan = profile?.plan ?? "free";
 
   // Fetch budgets
   const { data: budgets } = await supabase
@@ -111,6 +120,14 @@ export default async function BudgetPage() {
 
   return (
     <div className="max-w-4xl">
+      <UpgradeNudge
+        id="budget-alerts"
+        message="Get email and Slack alerts when budgets are exceeded with Pro"
+        ctaText="Upgrade to Pro"
+        ctaHref="/pricing"
+        plan={plan}
+      />
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Budget</h1>
         <p className="text-sm text-kova-silver-dim mt-0.5">
