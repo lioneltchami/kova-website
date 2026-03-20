@@ -132,54 +132,56 @@ export function AnomalyChart({ data }: AnomalyChartProps) {
   const anomalies = data.filter((d) => d.isAnomaly);
 
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <AreaChart data={chartData}>
-        <defs>
-          <linearGradient id="anomalyGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={KOVA_BLUE} stopOpacity={0.3} />
-            <stop offset="95%" stopColor={KOVA_BLUE} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke={KOVA_BORDER} />
-        <XAxis
-          dataKey="formattedDate"
-          tick={labelStyle}
-          axisLine={false}
-          tickLine={false}
-          interval="preserveStartEnd"
-        />
-        <YAxis
-          tick={labelStyle}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={formatCostTick}
-          width={50}
-        />
-        <Tooltip content={<AnomalyTooltip />} />
-        <Area
-          type="monotone"
-          dataKey="costDisplay"
-          stroke={KOVA_BLUE}
-          fill="url(#anomalyGrad)"
-          strokeWidth={2}
-          name="Cost"
-          dot={false}
-          activeDot={{ r: 4, fill: KOVA_BLUE }}
-        />
-        {/* Overlay red/amber dots on anomaly days */}
-        {anomalies.map((anomaly) => (
-          <ReferenceDot
-            key={anomaly.date}
-            x={formatDate(anomaly.date)}
-            y={Number(anomaly.cost.toFixed(4))}
-            r={6}
-            fill={
-              anomaly.severity === "critical" ? KOVA_CRITICAL : KOVA_WARNING
-            }
-            stroke="none"
+    <div role="img" aria-label="Chart highlighting cost anomalies over time">
+      <ResponsiveContainer width="100%" height={240}>
+        <AreaChart data={chartData}>
+          <defs>
+            <linearGradient id="anomalyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={KOVA_BLUE} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={KOVA_BLUE} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={KOVA_BORDER} />
+          <XAxis
+            dataKey="formattedDate"
+            tick={labelStyle}
+            axisLine={false}
+            tickLine={false}
+            interval="preserveStartEnd"
           />
-        ))}
-      </AreaChart>
-    </ResponsiveContainer>
+          <YAxis
+            tick={labelStyle}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={formatCostTick}
+            width={50}
+          />
+          <Tooltip content={<AnomalyTooltip />} />
+          <Area
+            type="monotone"
+            dataKey="costDisplay"
+            stroke={KOVA_BLUE}
+            fill="url(#anomalyGrad)"
+            strokeWidth={2}
+            name="Cost"
+            dot={false}
+            activeDot={{ r: 4, fill: KOVA_BLUE }}
+          />
+          {/* Overlay red/amber dots on anomaly days */}
+          {anomalies.map((anomaly) => (
+            <ReferenceDot
+              key={anomaly.date}
+              x={formatDate(anomaly.date)}
+              y={Number(anomaly.cost.toFixed(4))}
+              r={6}
+              fill={
+                anomaly.severity === "critical" ? KOVA_CRITICAL : KOVA_WARNING
+              }
+              stroke="none"
+            />
+          ))}
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

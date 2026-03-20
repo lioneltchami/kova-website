@@ -1,0 +1,102 @@
+---
+title: kova policy
+description: List, set, and enforce organization-level spending and compliance policies (Team and Enterprise plans)
+---
+
+# kova policy
+
+Manage organization-level policies that govern how Kova is used across your team. Policies enforce rules like requiring a monthly budget, mandating SSO, or restricting which AI tools are permitted.
+
+`kova policy` is a Team and Enterprise plan feature. On the Free or Pro plan, the command displays an upgrade prompt.
+
+## Usage
+
+```bash
+kova policy [action] [key] [value]
+```
+
+## Actions
+
+| Action    | Description                                                  |
+| --------- | ------------------------------------------------------------ |
+| `list`    | List available policies and their descriptions (default)     |
+| `set`     | Set a policy value (requires admin API access)               |
+| `enforce` | Run a local enforcement check against known policy rules     |
+
+## Examples
+
+### List policies
+
+```bash
+kova policy list
+kova policy          # same as 'list'
+```
+
+```
+  Kova Policy Management
+  --------------------------------------------
+
+  Enterprise feature. Upgrade at kova.dev/pricing to access policy management.
+
+  Available in: Team and Enterprise plans.
+```
+
+On a qualifying plan, `list` shows all org policies and their current values fetched from the cloud API.
+
+### Enforce policies locally
+
+```bash
+kova policy enforce
+```
+
+The `enforce` action runs a set of local checks without contacting the API. It verifies:
+
+- A monthly budget is configured (`kova budget --monthly <amount>`)
+- SSO is enabled (`kova sso configure --issuer <url>`)
+
+```
+  Policy Enforcement Check
+  --------------------------------------------
+
+  [PASS] Monthly budget must be set
+  [FAIL] SSO must be enabled for enterprise environments
+         SSO not enabled. Run: kova sso configure --issuer <url>
+
+1 policy violation(s) found.
+Fix the issues above or contact your Kova admin.
+```
+
+Use `kova policy enforce` in CI/CD to block deployments from machines that violate org policies:
+
+```bash
+kova policy enforce || exit 1
+```
+
+### Set a policy value
+
+```bash
+kova policy set budget.monthly_usd 500
+```
+
+Setting policies requires admin API access. Non-admin users see:
+
+```
+  Requires admin API access. Contact your Kova workspace administrator.
+```
+
+## Local Policy Checks
+
+The `enforce` action checks these policies locally (no API key required):
+
+| Policy key              | Description                          | Fix command                                      |
+| ----------------------- | ------------------------------------ | ------------------------------------------------ |
+| `budget.monthly_usd`    | Monthly budget must be configured    | `kova budget --monthly <amount>`                 |
+| `sso.enabled`           | SSO must be configured               | `kova sso configure --issuer <url>`              |
+
+Additional org-level policies (permitted tools, max spend per developer, data residency) are managed in the cloud dashboard and require admin access to set.
+
+## Related
+
+- [kova sso](/docs/commands/sso) - Configure SSO authentication
+- [kova budget](/docs/commands/budget) - Set monthly and daily budgets
+- [Enterprise RBAC guide](/docs/guides/enterprise-rbac) - Full policy and role management for teams

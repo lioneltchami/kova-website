@@ -6,7 +6,10 @@ interface KpiCardProps {
 
 export function KpiCard({ label, value, subtitle }: KpiCardProps) {
   return (
-    <div className="bg-kova-surface border border-kova-border rounded-xl p-6">
+    <div
+      className="bg-kova-surface border border-kova-border rounded-xl p-6"
+      aria-label={`${label}: ${value}`}
+    >
       <p className="text-xs text-kova-silver-dim uppercase tracking-wider">
         {label}
       </p>

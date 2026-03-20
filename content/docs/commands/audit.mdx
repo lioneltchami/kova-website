@@ -1,0 +1,98 @@
+---
+title: kova audit
+description: Export a full audit log of AI tool usage records in JSON or CSV format for compliance and financial review
+---
+
+# kova audit
+
+Export a complete audit log of all AI tool usage records. When logged in, Kova fetches the audit log from the cloud API (paginated, all records). When not logged in, or when `--local` is specified, it exports from the local `~/.kova/usage.json` store.
+
+Use `kova audit` for compliance exports, finance team reviews, or when you need a raw record-level dump rather than aggregated cost summaries.
+
+## Usage
+
+```bash
+kova audit [action] [flags]
+kova audit export [flags]
+```
+
+Both `kova audit` and `kova audit export` run the export. The `export` sub-action is optional.
+
+## Flags
+
+| Flag        | Type    | Default | Description                                                     |
+| ----------- | ------- | ------- | --------------------------------------------------------------- |
+| `--format`  | string  | `json`  | Output format: `json` or `csv`                                  |
+| `--since`   | string  | all     | Export records from this month onward. Format: `YYYY-MM`        |
+| `--output`  | string  | stdout  | File path to write the export. If omitted, output goes to stdout |
+| `--local`   | boolean | false   | Use local `~/.kova/` data even if you are logged in             |
+
+## Examples
+
+### Export to stdout as JSON (default)
+
+```bash
+kova audit
+```
+
+Prints all usage records as a JSON array to stdout.
+
+### Export to a file for compliance review
+
+```bash
+kova audit --output audit-march-2026.json --since 2026-03
+```
+
+```
+Fetching audit log from Kova cloud...
+Audit log written to: audit-march-2026.json (312 records)
+```
+
+### Export as CSV for a spreadsheet
+
+```bash
+kova audit --format csv --output usage-q1-2026.csv --since 2026-01
+```
+
+The CSV includes these columns: `id`, `tool`, `model`, `session_id`, `project`, `input_tokens`, `output_tokens`, `cost_usd`, `timestamp`, `duration_ms`.
+
+### Export local data only (no API call)
+
+```bash
+kova audit --local --format json --output local-backup.json
+```
+
+### Pipe to jq for inspection
+
+```bash
+kova audit | jq '[.[] | {tool, cost_usd, timestamp}]'
+```
+
+## Cloud vs Local Data
+
+When you are logged in (`kova login`), `kova audit` fetches from the cloud API at `https://kova.dev/api/v2/audit-log`. This includes records synced from all your machines. If the API is unreachable, Kova falls back to local data automatically and shows a warning.
+
+Use `--local` to always read from `~/.kova/usage.json` regardless of login state.
+
+## Record Fields
+
+Each record in the export contains:
+
+| Field            | Type    | Description                                      |
+| ---------------- | ------- | ------------------------------------------------ |
+| `id`             | string  | Unique record ID (deterministic hash)            |
+| `tool`           | string  | Source tool: `claude_code`, `cursor`, etc.       |
+| `model`          | string  | Model used: `haiku`, `sonnet`, `opus`, etc.      |
+| `session_id`     | string  | Conversation or session identifier               |
+| `project`        | string  | Project directory name, if detected              |
+| `input_tokens`   | number  | Input token count                                |
+| `output_tokens`  | number  | Output token count                               |
+| `cost_usd`       | number  | Estimated cost in USD                            |
+| `timestamp`      | string  | ISO 8601 timestamp                               |
+| `duration_ms`    | number  | Session duration in milliseconds, if available   |
+
+## Related
+
+- [kova data export](/docs/commands/data-export) - Export the full local database including metadata
+- [kova report](/docs/commands/report) - Generate summary cost reports
+- [Usage Data Format](/docs/reference/checkpoint-format) - Full schema for usage.json records

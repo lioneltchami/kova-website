@@ -1,0 +1,109 @@
+---
+title: kova data export
+description: Export your complete local usage database to a JSON file for backup, migration, or GDPR data portability
+---
+
+# kova data export
+
+Export the full contents of your local Kova usage database to a JSON file. The export includes all usage records plus export metadata. No API keys, credentials, or sensitive configuration are included.
+
+This command satisfies GDPR Article 20 (right to data portability). Use it to back up your local data, migrate to a new machine, or hand your data to your team for analysis.
+
+## Usage
+
+```bash
+kova data export [flags]
+```
+
+## Flags
+
+| Flag       | Type   | Default                        | Description                               |
+| ---------- | ------ | ------------------------------ | ----------------------------------------- |
+| `--output` | string | `kova-export-YYYY-MM-DD.json`  | File path to write the export             |
+
+## Examples
+
+### Export to a date-stamped file (default)
+
+```bash
+kova data export
+```
+
+```
+Reading local usage database...
+Exported 312 usage records to: kova-export-2026-03-19.json
+This file contains your local usage data only -- no API keys or credentials.
+```
+
+The file is written with mode `0600` (owner read/write only).
+
+### Export to a specific path
+
+```bash
+kova data export --output ~/backups/kova-backup.json
+```
+
+### Copy data to a new machine
+
+On your old machine:
+
+```bash
+kova data export --output kova-backup.json
+```
+
+Transfer `kova-backup.json` to your new machine, then import by copying the `usage_records` array into `~/.kova/usage.json`.
+
+## Export File Format
+
+The export file is a JSON object with two top-level keys:
+
+```json
+{
+  "export_metadata": {
+    "exported_at": "2026-03-19T14:00:00.000Z",
+    "cli_version": "1.0.0",
+    "record_count": 312,
+    "last_scan": "2026-03-19T13:45:00.000Z"
+  },
+  "usage_records": [
+    {
+      "id": "abc123",
+      "tool": "claude_code",
+      "model": "sonnet",
+      "session_id": "session-xyz",
+      "project": "kova-api",
+      "input_tokens": 18420,
+      "output_tokens": 4210,
+      "cost_usd": 0.118,
+      "timestamp": "2026-03-19T10:30:00.000Z",
+      "duration_ms": 145000,
+      "metadata": {}
+    }
+  ]
+}
+```
+
+Metadata fields containing keywords like `api_key`, `token`, `secret`, `password`, or `credential` are stripped before the file is written.
+
+## What Is and Isn't Included
+
+**Included:**
+
+- All usage records from `~/.kova/usage.json`
+- Export metadata (timestamp, CLI version, record count)
+- Safe metadata fields per record (project name, model info)
+
+**Not included:**
+
+- API keys or dashboard credentials
+- SSO tokens
+- Budget configuration
+- Cost center mappings
+
+To export configuration, copy `~/.kova/config.json` directly (review it first to ensure no secrets are present).
+
+## Related
+
+- [kova audit](/docs/commands/audit) - Export cloud audit log in JSON or CSV
+- [kova sync](/docs/commands/sync) - Push records to the cloud dashboard
+- [Usage Data Format](/docs/reference/checkpoint-format) - Full schema for usage records

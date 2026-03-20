@@ -1,0 +1,120 @@
+---
+title: kova ci-report
+description: Generate a structured cost report for CI/CD pipelines in JSON or table format with period totals and per-tool breakdowns
+---
+
+# kova ci-report
+
+Generate a cost report designed for CI/CD pipelines. The command reads from the local usage store and outputs a summary of spending for the last 7 or 30 days. Use `--format json` to feed cost data into downstream CI steps, cost gates, or PR comment bots.
+
+## Usage
+
+```bash
+kova ci-report [flags]
+```
+
+## Flags
+
+| Flag       | Type   | Default  | Description                            |
+| ---------- | ------ | -------- | -------------------------------------- |
+| `--format` | string | `table`  | Output format: `table` or `json`       |
+| `--period` | string | `7d`     | Time period: `7d` or `30d`             |
+
+## Examples
+
+### Table output (human readable)
+
+```bash
+kova ci-report
+```
+
+```
+  Kova CI Cost Report (Last 7 Days)
+  ==================================================
+
+  Period Cost: $14.20
+  Sessions:    47
+
+  By Tool
+  ------------------------------------------
+  claude_code        $9.40      32 sessions
+  cursor             $4.80      15 sessions
+
+  By Model
+  ------------------------------------------
+  sonnet             $9.40      28 requests
+  haiku              $4.80      19 requests
+
+  Dashboard: https://kova.dev/dashboard
+```
+
+### JSON output for scripting
+
+```bash
+kova ci-report --format json
+```
+
+```json
+{
+  "period_cost_usd": 14.20,
+  "baseline_cost_usd": 0,
+  "delta_usd": 14.20,
+  "delta_pct": 0,
+  "by_tool": [
+    { "tool": "claude_code", "cost_usd": 9.40, "sessions": 32 },
+    { "tool": "cursor", "cost_usd": 4.80, "sessions": 15 }
+  ],
+  "by_model": [
+    { "model": "sonnet", "cost_usd": 9.40, "requests": 28 },
+    { "model": "haiku", "cost_usd": 4.80, "requests": 19 }
+  ],
+  "sessions": 47,
+  "report_url": "https://kova.dev/dashboard"
+}
+```
+
+### 30-day report
+
+```bash
+kova ci-report --period 30d --format json
+```
+
+## GitHub Actions Integration
+
+Add a cost report step to your workflow:
+
+```yaml
+- name: AI Cost Report
+  run: |
+    npx kova ci-report --format json > kova-report.json
+    cat kova-report.json
+
+- name: Check cost threshold
+  run: |
+    COST=$(jq '.period_cost_usd' kova-report.json)
+    if (( $(echo "$COST > 50" | bc -l) )); then
+      echo "Weekly AI cost $COST exceeds $50 threshold"
+      exit 1
+    fi
+```
+
+See the [CI/CD Integration guide](/docs/guides/ci-cd-integration) for a complete GitHub Actions and GitLab CI setup with cost gates.
+
+## JSON Output Schema
+
+| Field               | Type   | Description                                               |
+| ------------------- | ------ | --------------------------------------------------------- |
+| `period_cost_usd`   | number | Total cost for the selected period                        |
+| `baseline_cost_usd` | number | Baseline cost from `.kova-baseline.json` if present       |
+| `delta_usd`         | number | Difference between period cost and baseline               |
+| `delta_pct`         | number | Percentage change from baseline (0 when no baseline set)  |
+| `by_tool`           | array  | Per-tool breakdown with `tool`, `cost_usd`, `sessions`    |
+| `by_model`          | array  | Per-model breakdown with `model`, `cost_usd`, `requests`  |
+| `sessions`          | number | Total unique sessions in the period                       |
+| `report_url`        | string | Link to the cloud dashboard                               |
+
+## Related
+
+- [kova report](/docs/commands/report) - Generate full cost reports for any period
+- [kova costs](/docs/commands/costs) - Interactive cost breakdown in the terminal
+- [CI/CD Integration guide](/docs/guides/ci-cd-integration) - Complete CI setup with cost gates

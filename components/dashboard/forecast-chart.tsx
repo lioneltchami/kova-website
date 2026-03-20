@@ -140,7 +140,11 @@ export function ForecastChart({
   const forecastStartIdx = historicalPoints.length - 1;
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      role="img"
+      aria-label="Chart showing projected cost forecast"
+    >
       {/* Forecast label overlay */}
       <div className="absolute top-1 right-2 flex items-center gap-1.5 text-xs text-kova-silver-dim">
         <span

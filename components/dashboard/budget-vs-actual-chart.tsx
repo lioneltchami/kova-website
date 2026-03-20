@@ -50,56 +50,58 @@ export function BudgetVsActualChart({ data }: BudgetVsActualChartProps) {
   const hasBudget = data.some((d) => d.budget !== null);
 
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <ComposedChart
-        data={data}
-        margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-      >
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke={KOVA_BORDER}
-          vertical={false}
-        />
-        <XAxis
-          dataKey="month"
-          tick={labelStyle}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          tick={labelStyle}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={(v) => `$${Number(v).toFixed(0)}`}
-          width={50}
-        />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          formatter={(value, name) => [
-            `$${Number(value).toFixed(2)}`,
-            name === "actual" ? "Actual Spend" : "Budget",
-          ]}
-        />
-        <Legend wrapperStyle={labelStyle} />
-        <Bar
-          dataKey="actual"
-          fill={KOVA_BLUE}
-          radius={[4, 4, 0, 0]}
-          name="actual"
-          fillOpacity={0.85}
-        />
-        {hasBudget && (
-          <Line
-            type="monotone"
-            dataKey="budget"
-            stroke={AMBER}
-            strokeWidth={2}
-            strokeDasharray="5 4"
-            dot={false}
-            name="budget"
+    <div role="img" aria-label="Chart comparing budget versus actual spending">
+      <ResponsiveContainer width="100%" height={240}>
+        <ComposedChart
+          data={data}
+          margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke={KOVA_BORDER}
+            vertical={false}
           />
-        )}
-      </ComposedChart>
-    </ResponsiveContainer>
+          <XAxis
+            dataKey="month"
+            tick={labelStyle}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tick={labelStyle}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(v) => `$${Number(v).toFixed(0)}`}
+            width={50}
+          />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            formatter={(value, name) => [
+              `$${Number(value).toFixed(2)}`,
+              name === "actual" ? "Actual Spend" : "Budget",
+            ]}
+          />
+          <Legend wrapperStyle={labelStyle} />
+          <Bar
+            dataKey="actual"
+            fill={KOVA_BLUE}
+            radius={[4, 4, 0, 0]}
+            name="actual"
+            fillOpacity={0.85}
+          />
+          {hasBudget && (
+            <Line
+              type="monotone"
+              dataKey="budget"
+              stroke={AMBER}
+              strokeWidth={2}
+              strokeDasharray="5 4"
+              dot={false}
+              name="budget"
+            />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

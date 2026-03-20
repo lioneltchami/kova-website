@@ -1,0 +1,92 @@
+---
+title: kova tag
+description: Map a project directory to a cost center so spending is attributed correctly in team reports and the dashboard
+---
+
+# kova tag
+
+Assign a project to a cost center. Cost centers group project spending for team budget tracking and reporting. Once a project is tagged, every usage record collected from that project directory flows into the assigned cost center's totals in the dashboard.
+
+## Usage
+
+```bash
+kova tag [project] [flags]
+kova tag                          # List all cost center mappings
+kova tag <project> --cost-center <name>   # Map a project to a cost center
+```
+
+## Flags
+
+| Flag             | Type   | Default | Description                                            |
+| ---------------- | ------ | ------- | ------------------------------------------------------ |
+| `--cost-center`  | string | --      | Cost center name to assign the project to (required when mapping) |
+
+## Examples
+
+### List all cost center mappings
+
+```bash
+kova tag
+```
+
+```
+  Cost Center Mappings
+  ------------------------------------------------
+  Engineering         kova-api, kova-website
+  Design              figma-tokens
+  Data                etl-pipeline
+```
+
+If no cost centers are configured yet:
+
+```
+  No cost centers configured.
+  Hint: Create cost centers in the Kova dashboard at kova.dev/dashboard
+```
+
+### Map a project to an existing cost center
+
+```bash
+kova tag my-new-service --cost-center Engineering
+```
+
+```
+Mapped project "my-new-service" to cost center "Engineering".
+```
+
+### Create a new cost center while tagging
+
+If the named cost center does not exist, Kova creates it automatically:
+
+```bash
+kova tag data-pipeline --cost-center "Data Platform"
+```
+
+```
+Created cost center "Data Platform" and mapped project "data-pipeline" to it.
+View cost center breakdown at kova.dev/dashboard
+```
+
+### Tag the current directory by name
+
+Use the directory name from your project root:
+
+```bash
+kova tag kova-website --cost-center Frontend
+```
+
+## How Project Matching Works
+
+Kova matches the project field on usage records against the list of projects in each cost center. The project name is the directory name detected during `kova track` -- typically the `name` field from `package.json` or the folder name of the working directory at scan time.
+
+To see which project name a directory produces, run `kova costs --group-by project` and look at the project column.
+
+## Cost Centers and the Dashboard
+
+Cost centers created via `kova tag` are stored in `~/.kova/config.json` and synced to the cloud dashboard the next time you run `kova sync`. In the dashboard, cost centers appear as budget groups on the Team view, where admins can assign budgets per cost center and receive alerts when spending approaches the limit.
+
+## Related
+
+- [kova costs](/docs/commands/costs) - View costs grouped by project
+- [kova sync](/docs/commands/sync) - Sync cost center mappings to the dashboard
+- [Enterprise RBAC guide](/docs/guides/enterprise-rbac) - Role-based access and cost center budgets

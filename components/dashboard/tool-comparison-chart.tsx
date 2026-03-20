@@ -81,42 +81,44 @@ export function ToolComparisonChart({ data }: ToolComparisonChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart
-        data={chartData}
-        margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-      >
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke={KOVA_BORDER}
-          vertical={false}
-        />
-        <XAxis
-          dataKey="tool"
-          tick={labelStyle}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          tick={labelStyle}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
-          width={50}
-        />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          formatter={(value) => [`$${Number(value).toFixed(4)}`, "Cost"]}
-        />
-        <Bar dataKey="cost" radius={[4, 4, 0, 0]} name="Cost">
-          {chartData.map((entry, index) => (
-            <Cell
-              key={entry.rawTool}
-              fill={getToolColor(entry.rawTool, index)}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div role="img" aria-label="Bar chart comparing costs across AI tools">
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart
+          data={chartData}
+          margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke={KOVA_BORDER}
+            vertical={false}
+          />
+          <XAxis
+            dataKey="tool"
+            tick={labelStyle}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tick={labelStyle}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
+            width={50}
+          />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            formatter={(value) => [`$${Number(value).toFixed(4)}`, "Cost"]}
+          />
+          <Bar dataKey="cost" radius={[4, 4, 0, 0]} name="Cost">
+            {chartData.map((entry, index) => (
+              <Cell
+                key={entry.rawTool}
+                fill={getToolColor(entry.rawTool, index)}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

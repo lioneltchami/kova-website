@@ -5,7 +5,7 @@ description: Complete guide to the Kova AI Dev FinOps CLI -- track, analyze, and
 
 # Kova Documentation
 
-Welcome to the Kova documentation. Kova is an AI Dev FinOps CLI that tracks cost and usage across every AI coding tool your team uses: Claude Code, Cursor, GitHub Copilot, Windsurf, and Devin.
+Welcome to the Kova documentation. Kova is an AI Dev FinOps CLI that tracks cost and usage across every AI coding tool your team uses: Claude Code, Cursor, GitHub Copilot, Windsurf, Devin, Aider, Continue.dev, Cline, Amazon Q Developer, Bolt.new, and Lovable.
 
 Install once. Get a unified view of what your AI tools actually cost -- per developer, per project, per tool.
 
@@ -17,25 +17,50 @@ Install once. Get a unified view of what your AI tools actually cost -- per deve
 
 ## Commands
 
-| Command            | Purpose                                                      |
-| ------------------ | ------------------------------------------------------------ |
-| `kova track`       | Record a usage event from any AI tool                        |
-| `kova costs`       | Display cost breakdown by tool, model, project, or date      |
-| `kova budget`      | Set and manage spending budgets with alert thresholds        |
-| `kova sync`        | Push local usage records to the cloud dashboard              |
-| `kova report`      | Generate a cost report for a period (CSV, JSON, or terminal) |
-| `kova config`      | View and edit configuration                                  |
-| `kova login`       | Authenticate the CLI with your Kova dashboard API key        |
-| `kova completions` | Install shell tab completions                                |
+| Command                  | Purpose                                                                  |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `kova init`              | Interactive setup wizard -- detect tools and run your first cost scan    |
+| `kova track`             | Scan and record AI tool usage data                                       |
+| `kova costs`             | Display cost breakdown by tool, model, project, or date                  |
+| `kova compare`           | Compare AI tool or model costs side-by-side with efficiency metrics      |
+| `kova budget`            | Set and manage spending budgets with alert thresholds                    |
+| `kova sync`              | Push local usage records to the cloud dashboard                          |
+| `kova report`            | Generate a cost report for a period (CSV, JSON, or terminal)             |
+| `kova audit`             | Export a full audit log of usage records in JSON or CSV                  |
+| `kova ci-report`         | Generate a structured cost report for CI/CD pipelines                    |
+| `kova tag`               | Map a project to a cost center for team budget tracking                  |
+| `kova data export`       | Export your local usage database to a JSON file                          |
+| `kova dashboard`         | Open the Kova web dashboard in your browser                              |
+| `kova sso`               | Configure SSO authentication for enterprise environments                 |
+| `kova policy`            | List, set, and enforce organization-level policies (Team/Enterprise)     |
+| `kova config`            | View and edit configuration                                              |
+| `kova login`             | Authenticate the CLI with your Kova dashboard API key                    |
+| `kova logout`            | Remove stored credentials                                                |
+| `kova account`           | View your Kova account and subscription details                          |
+| `kova completions`       | Install shell tab completions                                            |
 
 ## Guides
 
-- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Configure collectors for Cursor, Copilot, Windsurf, and Devin
+- [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) - Configure collectors for all 11 supported tools
 - [Team dashboard setup](/docs/guides/team-dashboard-setup) - Create a workspace, invite members, and set budgets
 - [Budget alerts](/docs/guides/budget-alerts) - Get notified before you overspend
+- [Enterprise RBAC](/docs/guides/enterprise-rbac) - Roles, cost centers, SSO, and policy enforcement
+- [CI/CD Integration](/docs/guides/ci-cd-integration) - GitHub Actions and GitLab CI with cost gates
+
+## Enterprise
+
+Kova's Team and Enterprise plans add:
+
+- **Cost centers** -- group project spending by team or product area using `kova tag`
+- **RBAC** -- admin, member, and viewer roles with granular permissions
+- **SSO** -- authenticate via Okta, Azure AD, Google Workspace, or any OIDC provider
+- **Policy enforcement** -- require budgets and SSO across all developer machines with `kova policy enforce`
+- **Org-wide reports** -- view spending across all team members in one dashboard
+
+See the [Enterprise RBAC guide](/docs/guides/enterprise-rbac) and [kova.dev/pricing](https://kova.dev/pricing) for details.
 
 ## Requirements
 
 - Node.js 18 or higher
 - A Kova account (free tier available at [kova.dev](https://kova.dev))
-- Supported AI tools: Claude Code, Cursor, GitHub Copilot, Windsurf, Devin
+- Supported AI tools: Claude Code, Cursor, GitHub Copilot, Windsurf, Devin, Aider, Continue.dev, Cline, Amazon Q Developer, Bolt.new, Lovable

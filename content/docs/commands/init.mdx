@@ -1,0 +1,110 @@
+---
+title: kova init
+description: Interactive onboarding wizard that detects AI tools on your machine and runs your first cost scan
+---
+
+# kova init
+
+Run `kova init` when you first install Kova. The wizard auto-detects every AI tool installed on your machine, runs a quick usage scan to show your first cost insight, and optionally syncs the data to the cloud dashboard.
+
+## Usage
+
+```bash
+kova init
+```
+
+`kova init` takes no flags. Everything happens interactively.
+
+## What It Does
+
+The wizard runs three steps:
+
+**Step 1 — Detecting AI tools.** Kova checks all 11 supported tools on your machine and lists which ones are present.
+
+**Step 2 — Quick scan.** With your confirmation, Kova reads the usage logs from every detected tool and writes the records to `~/.kova/usage.json`.
+
+**Step 3 — Sync to dashboard (optional).** You can choose to sync the collected data to [kova.dev/dashboard](https://kova.dev/dashboard) immediately. If you already have an API key stored from `kova login`, it syncs automatically. If not, you can paste a key or open the dashboard to get one.
+
+## Examples
+
+### First-time setup
+
+```bash
+kova init
+```
+
+```
+================================================
+    K O V A   AI Dev Cost Tracker
+  Know what your AI tools actually cost.
+================================================
+
+  Welcome to Kova setup!
+
+  Step 1/3 — Detecting AI tools
+
+  ✓  Claude Code
+  ✓  Cursor
+  ○  GitHub Copilot (not found)
+  ✓  Windsurf
+  ○  Devin (not found)
+
+  Step 2/3 — Quick scan
+
+  Scan detected tools? (Claude Code, Cursor, Windsurf) [Y/n]
+```
+
+### After the scan
+
+```
+  First insight:
+  ✓  Found 142 usage records across 38 sessions
+  ✓  Estimated cost: $28.40
+
+  Step 3/3 — Sync to dashboard (optional)
+
+  Sync data to kova.dev/dashboard? [y/N]
+```
+
+### When no tools are detected
+
+If Kova does not find any supported AI tools, it exits with instructions:
+
+```
+  No AI tools detected on this machine.
+  Install Claude Code, Cursor, Copilot, Windsurf, or Devin
+  and run kova init again.
+```
+
+## Supported Tools
+
+`kova init` checks all 11 collectors:
+
+- Claude Code
+- Cursor
+- GitHub Copilot
+- Windsurf
+- Devin
+- Aider
+- Continue.dev
+- Cline
+- Amazon Q Developer
+- Bolt.new
+- Lovable
+
+## After Init
+
+Once the wizard completes, run these commands to start monitoring your costs:
+
+```bash
+kova costs            # View cost breakdown
+kova track --daemon   # Run continuous background tracking
+kova dashboard        # Open the web dashboard
+```
+
+## Related
+
+- [kova track](/docs/commands/track) - Scan AI tool usage on demand
+- [kova costs](/docs/commands/costs) - View cost breakdown
+- [kova sync](/docs/commands/sync) - Push local records to the cloud
+- [kova dashboard](/docs/commands/dashboard) - Open the web dashboard

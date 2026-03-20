@@ -1,282 +1,175 @@
 ---
-title: Checkpoint Format
-description: Complete JSON schema for .progress.json checkpoint files — all fields, types, and an annotated example
+title: Usage Data Format
+description: Complete schema for usage.json -- the local usage record store written by Kova collectors
 ---
 
-# Checkpoint Format
+# Usage Data Format
 
-Kova writes `.progress.json` to the project root after each task completes. This file tracks build state for resumption, powers `kova status` output, and stores cumulative token usage. It is written atomically (write to temp file, then rename) so crashes never produce a corrupt checkpoint.
+Kova writes all collected usage data to `~/.kova/usage.json`. This file is the source of truth for `kova costs`, `kova report`, `kova compare`, and `kova sync`. Understanding its format lets you write scripts against it, troubleshoot missing data, or import records from other sources.
 
-The file uses the `CheckpointFile` TypeScript type from `src/types.ts`.
+## File Location
 
-## Top-Level Fields
+```
+~/.kova/usage.json
+```
 
-| Field         | Type            | Description                                                                             |
-| ------------- | --------------- | --------------------------------------------------------------------------------------- |
-| `plan`        | string          | Filename of the plan markdown file (not full path). Example: `"add-user-profiles.md"`.  |
-| `started_at`  | ISO 8601 string | Timestamp when `kova build` first started for this plan.                                |
-| `status`      | string          | Overall build status. One of: `"in_progress"`, `"completed"`, `"failed"`.               |
-| `tasks`       | object          | Map from task ID (string) to `CheckpointTask` object.                                   |
-| `token_usage` | object or null  | Cumulative token usage across all completed tasks. Null until the first task completes. |
-| `validation`  | object or null  | Quality-engineer validation result. Null until validation completes.                    |
+The file is created on first run of `kova track` or `kova init`. It is plain JSON and can be opened in any text editor.
 
-## tasks Map
-
-The `tasks` field maps each task ID (as defined in the plan's `Task ID` field) to a `CheckpointTask` object.
-
-### CheckpointTask Fields
-
-| Field           | Type                    | Description                                                                                |
-| --------------- | ----------------------- | ------------------------------------------------------------------------------------------ |
-| `status`        | string                  | Task status. One of: `"pending"`, `"in_progress"`, `"completed"`, `"failed"`, `"blocked"`. |
-| `agent_type`    | string or null          | Agent type assigned to this task. Null for pending tasks.                                  |
-| `model`         | string or null          | Model used (`"haiku"`, `"sonnet"`, or `"opus"`). Null for pending tasks.                   |
-| `agent_id`      | string or null          | Unique ID of the agent instance. Used internally for logging. Null until the task starts.  |
-| `started_at`    | ISO 8601 string or null | When the agent started executing. Null for pending tasks.                                  |
-| `completed_at`  | ISO 8601 string or null | When the agent finished. Null for pending and in-progress tasks.                           |
-| `duration_s`    | number or null          | Execution time in seconds. Null until completed.                                           |
-| `tokens`        | object or null          | Token counts for this task. Null until the task completes.                                 |
-| `tokens.input`  | number                  | Input tokens consumed by this task's agent invocation.                                     |
-| `tokens.output` | number                  | Output tokens produced by this task's agent invocation.                                    |
-| `tokens.total`  | number                  | Sum of input and output tokens.                                                            |
-
-### Task Status Values
-
-| Status        | Meaning                                                        |
-| ------------- | -------------------------------------------------------------- |
-| `pending`     | Task has not started. Waiting for dependencies to complete.    |
-| `in_progress` | Agent is actively running.                                     |
-| `completed`   | Agent finished successfully.                                   |
-| `failed`      | Agent failed or timed out. Build stops after the current wave. |
-| `blocked`     | Task cannot start because a dependency failed.                 |
-
-## token_usage Object
-
-The `token_usage` field is populated after the first task completes and updated after each subsequent task. It reflects cumulative usage across the entire build, including across resumes.
-
-| Field                 | Type            | Description                                                                          |
-| --------------------- | --------------- | ------------------------------------------------------------------------------------ |
-| `total_input`         | number          | Sum of all completed task input tokens.                                              |
-| `total_output`        | number          | Sum of all completed task output tokens.                                             |
-| `total_combined`      | number          | Sum of total_input and total_output.                                                 |
-| `cost_estimate_usd`   | number          | Estimated cost in USD based on TOKEN_COSTS rates.                                    |
-| `per_task`            | object          | Map from task ID to per-task token summary.                                          |
-| `per_task[id].input`  | number          | Input tokens for this task.                                                          |
-| `per_task[id].output` | number          | Output tokens for this task.                                                         |
-| `per_task[id].model`  | string          | Model used for this task.                                                            |
-| `session_start`       | ISO 8601 string | When the build session started (used for window calculations).                       |
-| `plan_type`           | string          | Claude plan type from kova.yaml. One of: `"pro"`, `"max5"`, `"max20"`, `"api"`.      |
-| `window_allocation`   | number          | Token allocation for the configured plan type. Used to calculate budget percentages. |
-
-## validation Object
-
-Present after the quality-engineer validation task completes. Null before then.
-
-| Field     | Type    | Description                                                                  |
-| --------- | ------- | ---------------------------------------------------------------------------- |
-| `passed`  | boolean | `true` if all acceptance criteria passed and all quality commands succeeded. |
-| `results` | object  | Map from criterion text to boolean (passed/failed).                          |
-
-## Complete Example
-
-An annotated `.progress.json` for a 5-task build where 2 tasks are complete and 1 is running:
+## Top-Level Structure
 
 ```json
 {
-  "plan": "add-user-profiles.md",
-  "started_at": "2026-03-14T10:00:00Z",
-  "status": "in_progress",
-  "tasks": {
-    "setup-storage": {
-      "status": "completed",
-      "agent_type": "supabase-specialist",
-      "model": "haiku",
-      "agent_id": "agent-abc123",
-      "started_at": "2026-03-14T10:00:05Z",
-      "completed_at": "2026-03-14T10:00:52Z",
-      "duration_s": 47,
-      "tokens": {
-        "input": 8200,
-        "output": 2100,
-        "total": 10300
-      }
-    },
-    "build-api": {
-      "status": "completed",
-      "agent_type": "backend-engineer",
-      "model": "sonnet",
-      "agent_id": "agent-def456",
-      "started_at": "2026-03-14T10:00:53Z",
-      "completed_at": "2026-03-14T10:03:11Z",
-      "duration_s": 138,
-      "tokens": {
-        "input": 18420,
-        "output": 4210,
-        "total": 22630
-      }
-    },
-    "build-ui": {
-      "status": "in_progress",
-      "agent_type": "frontend-specialist",
-      "model": "sonnet",
-      "agent_id": "agent-ghi789",
-      "started_at": "2026-03-14T10:03:12Z",
-      "completed_at": null,
-      "duration_s": null,
-      "tokens": null
-    },
-    "build-avatar-component": {
-      "status": "pending",
-      "agent_type": null,
-      "model": null,
-      "agent_id": null,
-      "started_at": null,
-      "completed_at": null,
-      "duration_s": null,
-      "tokens": null
-    },
-    "validate": {
-      "status": "pending",
-      "agent_type": null,
-      "model": null,
-      "agent_id": null,
-      "started_at": null,
-      "completed_at": null,
-      "duration_s": null,
-      "tokens": null
-    }
-  },
-  "token_usage": {
-    "total_input": 26620,
-    "total_output": 6310,
-    "total_combined": 32930,
-    "cost_estimate_usd": 0.16,
-    "per_task": {
-      "setup-storage": {
-        "input": 8200,
-        "output": 2100,
-        "model": "haiku"
-      },
-      "build-api": {
-        "input": 18420,
-        "output": 4210,
-        "model": "sonnet"
-      }
-    },
-    "session_start": "2026-03-14T10:00:00Z",
-    "plan_type": "max5",
-    "window_allocation": 88000
-  },
-  "validation": null
+  "records": [...],
+  "last_scan": "2026-03-19T14:00:00.000Z"
 }
 ```
 
-## Completed Build with Validation
+| Field       | Type            | Description                                                      |
+| ----------- | --------------- | ---------------------------------------------------------------- |
+| `records`   | UsageRecord[]   | Array of all collected usage records, newest last.               |
+| `last_scan` | ISO 8601 string | Timestamp of the most recent collector scan. Null if never run.  |
 
-A complete checkpoint after a successful build with validation:
+## UsageRecord Fields
+
+Each element in the `records` array is a `UsageRecord` object:
+
+| Field           | Type               | Description                                                                           |
+| --------------- | ------------------ | ------------------------------------------------------------------------------------- |
+| `id`            | string             | Unique record ID. Deterministic hash of the source data. Prevents duplicate imports.  |
+| `tool`          | string             | Source AI tool. See [tool values](#tool-values) below.                                |
+| `model`         | string             | Model used. See [model values](#model-values) below.                                  |
+| `session_id`    | string             | Conversation or session identifier from the source tool.                              |
+| `project`       | string or null     | Project directory name detected from the working directory. Null if not available.    |
+| `input_tokens`  | number             | Input (prompt) token count for this record.                                           |
+| `output_tokens` | number             | Output (completion) token count for this record.                                      |
+| `cost_usd`      | number             | Estimated cost in USD. Calculated from token counts and model rates.                  |
+| `timestamp`     | ISO 8601 string    | When this usage occurred, as reported by the source tool.                             |
+| `duration_ms`   | number or null     | Session or request duration in milliseconds. Null when not available.                 |
+| `metadata`      | `Record<string, string>` | Tool-specific additional fields. Never contains credentials or API keys.          |
+
+## Tool Values
+
+The `tool` field uses these canonical string values:
+
+| Value         | AI Tool                  |
+| ------------- | ------------------------ |
+| `claude_code` | Claude Code              |
+| `cursor`      | Cursor                   |
+| `copilot`     | GitHub Copilot           |
+| `windsurf`    | Windsurf                 |
+| `devin`       | Devin                    |
+| `aider`       | Aider                    |
+| `continue_dev`| Continue.dev             |
+| `cline`       | Cline                    |
+| `amazon_q`    | Amazon Q Developer       |
+| `bolt`        | Bolt.new                 |
+| `lovable`     | Lovable                  |
+
+## Model Values
+
+The `model` field is normalized to a canonical name regardless of the raw string stored by each tool:
+
+| Value          | Model                          |
+| -------------- | ------------------------------ |
+| `haiku`        | Claude Haiku (any version)     |
+| `sonnet`       | Claude Sonnet (any version)    |
+| `opus`         | Claude Opus (any version)      |
+| `gpt-4o`       | OpenAI GPT-4o                  |
+| `gpt-4o-mini`  | OpenAI GPT-4o mini             |
+| `gpt-4.1`      | OpenAI GPT-4.1                 |
+| `gpt-5`        | OpenAI GPT-5                   |
+| `gpt-5-mini`   | OpenAI GPT-5 mini              |
+| `o1`           | OpenAI o1                      |
+| `o3`           | OpenAI o3                      |
+| `gemini-pro`   | Google Gemini Pro              |
+| `gemini-flash` | Google Gemini Flash            |
+| `swe-1.5`      | Windsurf SWE-1.5               |
+| `swe-1.5-fast` | Windsurf SWE-1.5 Fast          |
+| `unknown`      | Could not determine model name |
+
+## Example Record
 
 ```json
 {
-  "plan": "add-user-profiles.md",
-  "started_at": "2026-03-14T10:00:00Z",
-  "status": "completed",
-  "tasks": {
-    "setup-storage": {
-      "status": "completed",
-      "duration_s": 47,
-      "tokens": { "input": 8200, "output": 2100, "total": 10300 }
-    },
-    "build-api": {
-      "status": "completed",
-      "duration_s": 138,
-      "tokens": { "input": 18420, "output": 4210, "total": 22630 }
-    },
-    "build-ui": {
-      "status": "completed",
-      "duration_s": 105,
-      "tokens": { "input": 15800, "output": 3600, "total": 19400 }
-    },
-    "build-avatar-component": {
-      "status": "completed",
-      "duration_s": 89,
-      "tokens": { "input": 12300, "output": 2800, "total": 15100 }
-    },
-    "validate": {
-      "status": "completed",
-      "duration_s": 72,
-      "tokens": { "input": 11600, "output": 2400, "total": 14000 }
-    }
-  },
-  "token_usage": {
-    "total_input": 66320,
-    "total_output": 15110,
-    "total_combined": 81430,
-    "cost_estimate_usd": 0.29,
-    "per_task": {
-      "setup-storage": { "input": 8200, "output": 2100, "model": "haiku" },
-      "build-api": { "input": 18420, "output": 4210, "model": "sonnet" },
-      "build-ui": { "input": 15800, "output": 3600, "model": "sonnet" },
-      "build-avatar-component": {
-        "input": 12300,
-        "output": 2800,
-        "model": "sonnet"
-      },
-      "validate": { "input": 11600, "output": 2400, "model": "sonnet" }
-    },
-    "session_start": "2026-03-14T10:00:00Z",
-    "plan_type": "max5",
-    "window_allocation": 88000
-  },
-  "validation": {
-    "passed": true,
-    "results": {
-      "Display name and bio can be updated": true,
-      "Avatar upload accepts JPEG and PNG up to 5MB": true,
-      "Uploaded avatar appears within 2 seconds": true,
-      "TypeScript compiles with no errors": true,
-      "Lint passes with no warnings": true,
-      "Profile data persists across page refresh": true,
-      "All existing profile tests continue to pass": true
-    }
+  "id": "a3f8c2d1e4b7a6c5d2e1f0a9b8c7d6e5f4a3b2c1",
+  "tool": "claude_code",
+  "model": "sonnet",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project": "kova-api",
+  "input_tokens": 18420,
+  "output_tokens": 4210,
+  "cost_usd": 0.11826,
+  "timestamp": "2026-03-19T10:30:00.000Z",
+  "duration_ms": 145000,
+  "metadata": {
+    "cwd": "/Users/alice/dev/kova-api",
+    "stop_reason": "end_turn"
   }
 }
 ```
 
-## File Location and Gitignore
+## Complete File Example
 
-`.progress.json` is always written to the project root. Add it to `.gitignore`:
-
+```json
+{
+  "records": [
+    {
+      "id": "a3f8c2d1e4b7a6c5d2e1f0a9b8c7d6e5f4a3b2c1",
+      "tool": "claude_code",
+      "model": "sonnet",
+      "session_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project": "kova-api",
+      "input_tokens": 18420,
+      "output_tokens": 4210,
+      "cost_usd": 0.11826,
+      "timestamp": "2026-03-19T10:30:00.000Z",
+      "duration_ms": 145000,
+      "metadata": { "cwd": "/Users/alice/dev/kova-api" }
+    },
+    {
+      "id": "b4c9d3e2f5a8b7c6d3e2f1b0c9d8e7f6a5b4c3d2",
+      "tool": "cursor",
+      "model": "gpt-4o",
+      "session_id": "cursor-session-abc123",
+      "project": "kova-website",
+      "input_tokens": 8200,
+      "output_tokens": 1800,
+      "cost_usd": 0.0385,
+      "timestamp": "2026-03-19T11:15:00.000Z",
+      "duration_ms": null,
+      "metadata": {}
+    }
+  ],
+  "last_scan": "2026-03-19T14:00:00.000Z"
+}
 ```
-# .gitignore
-.progress.json
-.progress.json.bak
-```
 
-The `.bak` file is written when you start a fresh build over an existing checkpoint. It preserves the previous run's data for reference.
+## Deduplication
 
-## Reading the Checkpoint Programmatically
+Records have deterministic IDs computed from the source data (tool, session, timestamp, token counts). When `kova track` runs multiple times, duplicate records are detected by ID and not written twice. The same deduplication runs server-side during `kova sync`.
 
-The checkpoint is plain JSON and can be read from any language. From TypeScript:
+## Cost Calculation Rates
 
-```typescript
-import { readFileSync } from "fs";
-import type { CheckpointFile } from "kova-cli/types";
+Costs are computed at collection time using these rates (per 1M tokens):
 
-const checkpoint = JSON.parse(
-  readFileSync(".progress.json", "utf-8"),
-) as CheckpointFile;
-
-const completed = Object.values(checkpoint.tasks).filter(
-  (t) => t.status === "completed",
-).length;
-
-const total = Object.keys(checkpoint.tasks).length;
-console.log(`${completed} / ${total} tasks complete`);
-```
+| Model        | Input    | Output   |
+| ------------ | -------- | -------- |
+| haiku        | $0.25    | $1.25    |
+| sonnet       | $3.00    | $15.00   |
+| opus         | $15.00   | $75.00   |
+| gpt-4o       | $2.50    | $10.00   |
+| gpt-4o-mini  | $0.15    | $0.60    |
+| gpt-4.1      | $2.00    | $8.00    |
+| gpt-5        | $1.25    | $10.00   |
+| gpt-5-mini   | $0.40    | $1.60    |
+| o1           | $15.00   | $60.00   |
+| o3           | $10.00   | $40.00   |
+| gemini-pro   | $1.25    | $5.00    |
+| gemini-flash | $0.075   | $0.30    |
 
 ## Related
 
-- [Checkpoint Recovery](/docs/guides/checkpoint-recovery) - Resuming interrupted builds
-- [kova status](/docs/commands/status) - Display checkpoint state in the terminal
-- [kova build](/docs/commands/build) - Build command with --resume flag
-- [Token Tracking](/docs/guides/token-tracking) - How token_usage is accumulated
+- [Collectors Reference](/docs/reference/agent-types) - How each collector reads source data
+- [kova audit](/docs/commands/audit) - Export usage records in JSON or CSV
+- [kova data export](/docs/commands/data-export) - Export the full local database
+- [Cost Report Format](/docs/reference/plan-format) - Schema for kova report JSON output

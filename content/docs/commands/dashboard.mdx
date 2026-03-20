@@ -1,0 +1,64 @@
+---
+title: kova dashboard
+description: Open the Kova web dashboard in your default browser
+---
+
+# kova dashboard
+
+Open the Kova web dashboard in your default browser. If you are logged in, Kova opens the dashboard URL stored from your last `kova login` or `kova init` session. Otherwise it opens `https://kova.dev/dashboard`.
+
+## Usage
+
+```bash
+kova dashboard
+```
+
+`kova dashboard` takes no flags.
+
+## Examples
+
+### Open the dashboard
+
+```bash
+kova dashboard
+```
+
+```
+Opening https://kova.dev/dashboard
+```
+
+If the browser fails to open (headless environment), Kova prints the URL so you can open it manually.
+
+### After syncing
+
+Sync your latest data to the cloud, then open the dashboard to see the updated charts:
+
+```bash
+kova sync
+kova dashboard
+```
+
+## What You Can Do in the Dashboard
+
+- View cost charts by tool, model, project, and time period
+- Set and manage budgets for your account or team cost centers
+- Invite team members and assign roles
+- Download cost reports as CSV or PDF
+- Configure budget alert thresholds and notification channels
+- Manage SSO and organization policies (Team and Enterprise plans)
+
+## Headless Environments
+
+In a headless environment (remote servers, CI/CD), `kova dashboard` prints the URL instead of opening a browser:
+
+```
+Open manually: https://kova.dev/dashboard
+```
+
+Use the URL to access the dashboard from any browser.
+
+## Related
+
+- [kova sync](/docs/commands/sync) - Push local records to the cloud before viewing
+- [kova costs](/docs/commands/costs) - View costs directly in the terminal without opening a browser
+- [kova login](/docs/commands/login) - Authenticate and set your dashboard URL

@@ -75,6 +75,7 @@ export function Sidebar({ email, plan }: SidebarProps) {
       <Link
         href={href}
         onClick={() => setMobileOpen(false)}
+        aria-current={active ? "page" : undefined}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
           active
             ? "bg-kova-charcoal-light text-kova-blue"
@@ -103,7 +104,10 @@ export function Sidebar({ email, plan }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav
+        aria-label="Dashboard navigation"
+        className="flex-1 px-3 py-4 space-y-1 overflow-y-auto"
+      >
         {NAV_LINKS.map((link) => (
           <NavLink key={link.href} {...link} />
         ))}
@@ -142,7 +146,7 @@ export function Sidebar({ email, plan }: SidebarProps) {
       <button
         className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-kova-surface border border-kova-border text-kova-silver"
         onClick={() => setMobileOpen((v) => !v)}
-        aria-label="Toggle sidebar"
+        aria-label="Open navigation menu"
       >
         {mobileOpen ? <X size={18} /> : <Menu size={18} />}
       </button>

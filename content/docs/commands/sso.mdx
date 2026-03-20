@@ -1,0 +1,114 @@
+---
+title: kova sso
+description: Configure and manage SSO authentication for enterprise environments using OAuth 2.0 / OIDC
+---
+
+# kova sso
+
+Manage Single Sign-On (SSO) authentication for the Kova CLI. SSO allows enterprise teams to authenticate with their existing identity provider (Okta, Azure AD, Google Workspace, etc.) instead of using individual API keys.
+
+SSO configuration is stored in `~/.kova/config.json` under the `sso` key.
+
+## Usage
+
+```bash
+kova sso <action> [flags]
+```
+
+## Actions
+
+| Action      | Description                                         |
+| ----------- | --------------------------------------------------- |
+| `configure` | Set the SSO issuer URL for your identity provider   |
+| `login`     | Initiate SSO authentication via the browser         |
+| `status`    | Show current SSO configuration and token state      |
+
+## Flags
+
+| Flag       | Type   | Default | Description                                   |
+| ---------- | ------ | ------- | --------------------------------------------- |
+| `--issuer` | string | --      | SSO issuer URL (required for `sso configure`) |
+
+## Examples
+
+### Configure an SSO issuer
+
+```bash
+kova sso configure --issuer https://sso.mycompany.com
+```
+
+```
+SSO issuer configured: https://sso.mycompany.com
+Run 'kova sso login' to authenticate.
+```
+
+The issuer URL must be a valid HTTPS URL. Kova validates the URL format before saving.
+
+### Log in via SSO
+
+```bash
+kova sso login
+```
+
+```
+Opening SSO login in your browser...
+Login URL: https://sso.mycompany.com/oauth/authorize?client_id=kova-cli&...
+After authenticating, the token will be stored automatically.
+```
+
+Kova initiates an OAuth 2.0 PKCE flow. After you authenticate in the browser, the token is stored in `~/.kova/config.json`.
+
+### Check SSO status
+
+```bash
+kova sso status
+```
+
+When configured and authenticated:
+
+```
+  SSO Configuration
+  ----------------------------------------
+  Status:  enabled
+  Issuer:  https://sso.mycompany.com
+  Token:   valid until 2026-03-20 09:00:00
+```
+
+When not configured:
+
+```
+  SSO Configuration
+  ----------------------------------------
+  Status:  not configured
+
+Run 'kova sso configure --issuer <url>' to set up SSO.
+```
+
+## Supported Identity Providers
+
+Any OIDC-compliant provider works with `kova sso`:
+
+- Okta
+- Azure Active Directory
+- Google Workspace
+- OneLogin
+- Auth0
+- PingFederate
+
+Supply the provider's OIDC discovery endpoint as the `--issuer` value. For Okta this is typically `https://your-org.okta.com/oauth2/default`.
+
+## Enterprise Setup
+
+SSO is an Enterprise plan feature. To enable SSO for your team:
+
+1. Configure your identity provider to allow the Kova CLI as an OAuth client.
+2. Run `kova sso configure --issuer <your-issuer-url>` on each developer's machine (or distribute via a managed config).
+3. Enforce SSO via `kova policy enforce` to verify all machines have SSO enabled.
+
+See the [Enterprise RBAC guide](/docs/guides/enterprise-rbac) for a full team rollout walkthrough.
+
+## Related
+
+- [kova login](/docs/commands/login) - Authenticate with a personal API key
+- [kova policy](/docs/commands/policy) - Enforce SSO and other org policies
+- [Enterprise RBAC guide](/docs/guides/enterprise-rbac) - Team SSO setup and role management

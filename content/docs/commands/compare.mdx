@@ -1,0 +1,93 @@
+---
+title: kova compare
+description: Compare AI tool or model costs side-by-side with efficiency metrics like cost per session and cost per 1K tokens
+---
+
+# kova compare
+
+Display a side-by-side comparison of your AI tool or model costs for a given period. For each group, Kova shows total cost, session count, cost per session, and cost per 1K tokens -- making it easy to see which tools and models deliver the best value.
+
+## Usage
+
+```bash
+kova compare [flags]
+```
+
+## Flags
+
+| Flag       | Type    | Default | Description                                        |
+| ---------- | ------- | ------- | -------------------------------------------------- |
+| `--tools`  | boolean | true    | Group comparison by tool (default when neither flag is set) |
+| `--models` | boolean | false   | Group comparison by model instead of tool          |
+| `--period` | string  | `30d`   | Time period to compare: `7d`, `30d`, `90d`         |
+
+## Examples
+
+### Compare tools (default)
+
+```bash
+kova compare
+```
+
+```
+  AI Tool Cost Comparison (Last 30 Days)
+  ==================================================
+
+  Tool              Sessions  Cost      Cost/Session  Cost/1K Tokens
+  ----------------------------------------------------------------
+  claude-code       94        $42.18    $0.45         $0.032
+  cursor            312       $18.40    $0.059        $0.012
+  copilot           --        $0.00     $0.00         $0.00
+
+  Total: $60.58 across 406 sessions
+  Most efficient: cursor ($0.012/1K tokens)
+```
+
+The most expensive tool is highlighted in yellow. The most efficient tool (lowest cost per 1K tokens) is highlighted in green.
+
+### Compare models
+
+```bash
+kova compare --models
+```
+
+```
+  AI Model Cost Comparison (Last 30 Days)
+  ==================================================
+
+  Model             Sessions  Cost      Cost/Session  Cost/1K Tokens
+  ----------------------------------------------------------------
+  opus              12        $28.40    $2.37         $0.18
+  sonnet            82        $13.78    $0.168        $0.014
+  haiku             312       $0.42     $0.001        $0.0008
+
+  Total: $42.60 across 406 sessions
+  Most efficient: haiku ($0.0008/1K tokens)
+```
+
+### Shorter time window
+
+```bash
+kova compare --period 7d
+```
+
+### 90-day view for trend analysis
+
+```bash
+kova compare --tools --period 90d
+```
+
+## Reading the Output
+
+- **Cost/Session** -- Average spend per conversation or coding session. Useful for understanding how intensively each tool is being used.
+- **Cost/1K Tokens** -- Token efficiency. A lower number means the tool or model costs less per unit of work.
+- **Green highlight** -- Most efficient entry (lowest cost per 1K tokens).
+- **Yellow highlight** -- Most expensive entry (highest total cost).
+
+Flat-rate tools like GitHub Copilot report `$0.00` because Kova cannot attribute a per-token cost to subscription-only plans.
+
+## Related
+
+- [kova costs](/docs/commands/costs) - View detailed cost breakdown with filtering
+- [kova report](/docs/commands/report) - Generate exportable cost reports
+- [kova track](/docs/commands/track) - Collect usage data before comparing

@@ -92,32 +92,37 @@ export function ModelDistributionChart({ data }: ModelDistributionChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="45%"
-          innerRadius={60}
-          outerRadius={90}
-          dataKey="value"
-          nameKey="name"
-          labelLine={false}
-          label={CustomLabel as unknown as boolean}
-        >
-          {data.map((entry, index) => (
-            <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip
-          contentStyle={tooltipStyle}
-          formatter={(value, name) => [
-            `${value} sessions (${data.find((d) => d.name === name)?.percent.toFixed(1)}%)`,
-            name,
-          ]}
-        />
-        <Legend wrapperStyle={labelStyle} />
-      </PieChart>
-    </ResponsiveContainer>
+    <div
+      role="img"
+      aria-label="Pie chart showing cost distribution by AI model"
+    >
+      <ResponsiveContainer width="100%" height={240}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="45%"
+            innerRadius={60}
+            outerRadius={90}
+            dataKey="value"
+            nameKey="name"
+            labelLine={false}
+            label={CustomLabel as unknown as boolean}
+          >
+            {data.map((entry, index) => (
+              <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip
+            contentStyle={tooltipStyle}
+            formatter={(value, name) => [
+              `${value} sessions (${data.find((d) => d.name === name)?.percent.toFixed(1)}%)`,
+              name,
+            ]}
+          />
+          <Legend wrapperStyle={labelStyle} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

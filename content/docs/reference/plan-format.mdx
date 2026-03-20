@@ -1,284 +1,190 @@
 ---
-title: Plan Format
-description: Complete markdown specification for Kova plan files — required sections, task metadata, and dependency syntax
+title: Cost Report Format
+description: JSON output schema from kova report -- field descriptions for period summaries, tool breakdowns, and model breakdowns
 ---
 
-# Plan Format
+# Cost Report Format
 
-A Kova plan is a structured markdown document that defines the work to be done, which agents will do it, and the order they must execute. `kova plan` generates plans automatically, but you can also write them manually or edit generated plans before running `kova build`.
+`kova report --format json` outputs a structured JSON document that summarizes AI tool spending for a period. Use this format to feed cost data into dashboards, finance systems, or custom scripts.
 
-Plans live in `.claude/tasks/` and use lowercase-with-dashes filenames: `add-user-profiles.md`, `fix-checkout-bug.md`.
-
-## Required Sections
-
-Every valid plan must contain these section headings. The plan validator (configured in `plan_validation` in `kova.yaml`) enforces this at plan creation time.
-
-### Task Description
-
-A paragraph describing the overall task and its scope. Provides context to all agents before they read their individual task definitions.
-
-```markdown
-## Task Description
-
-Add user profile editing to the application. Users can update their display name,
-bio, and avatar image. Avatar images are stored in Supabase Storage. Profile changes
-are reflected immediately across the app without requiring a page refresh.
-```
-
-### Objective
-
-Defines what "done" looks like. Should be measurable and unambiguous. The quality-engineer reads this section to evaluate whether the build succeeded.
-
-```markdown
-## Objective
-
-Users can navigate to their profile page, edit their display name and bio,
-upload a new avatar image (JPEG or PNG, max 5MB), and see changes reflected
-immediately. The profile endpoint returns the updated data within 500ms.
-```
-
-### Relevant Files
-
-Files the agents will read or modify. Listing files explicitly improves agent accuracy because agents focus on these files rather than exploring the entire codebase.
-
-```markdown
-## Relevant Files
-
-- `lib/services/profiles.ts` - Profile service (read/write profile data)
-- `app/profile/edit.tsx` - Profile edit screen (create new)
-- `components/common/AvatarUpload.tsx` - Avatar upload component (create new)
-- `supabase/migrations/` - Add storage bucket policy migration
-- `types/database.types.ts` - Add avatar_url to profiles type
-```
-
-### Step by Step Tasks
-
-The ordered list of tasks. Each task is a level-3 heading followed by metadata fields and a description. See [Task Metadata Fields](#task-metadata-fields) for field details.
-
-```markdown
-## Step by Step Tasks
-
-### 1. Create storage bucket
-
-- **Task ID**: setup-storage
-- **Agent**: supabase-specialist
-- **Model**: haiku
-- **Depends On**: none
-- Create a `avatars` storage bucket in Supabase with public read access.
-- Add a migration file to create the bucket and set RLS policy allowing authenticated users to upload.
-
-### 2. Build profile API
-
-- **Task ID**: build-api
-- **Agent**: backend-engineer
-- **Model**: sonnet
-- **Depends On**: setup-storage
-- Add `updateProfile(userId, data)` and `uploadAvatar(userId, file)` functions to `lib/services/profiles.ts`.
-- `uploadAvatar` should upload to the `avatars` bucket and return the public URL.
-- Update the profile type to include `avatar_url: string | null`.
-```
-
-### Acceptance Criteria
-
-An ordered list of concrete, verifiable criteria. The quality-engineer checks these when validating the build. Write them as assertions, not as tasks.
-
-```markdown
-## Acceptance Criteria
-
-1. Users can update display name and bio from the profile edit screen
-2. Avatar upload accepts JPEG and PNG files up to 5MB, rejects others
-3. Uploaded avatars appear on the profile screen within 2 seconds
-4. TypeScript compiles with no errors (`tsc --noEmit` passes)
-5. Lint passes (`biome check .` returns exit 0)
-6. Profile data persists across page refreshes
-```
-
-## Optional Sections
-
-These sections improve plan quality but are not required by default. Required status is configurable via `plan_validation.required_sections` in `kova.yaml`.
-
-### Team Orchestration
-
-Notes for the master orchestrator. Documents which tasks can run in parallel, special coordination requirements, or risks to watch for.
-
-```markdown
-## Team Orchestration
-
-Tasks 2 (build-api) and 3 (build-ui) can run in parallel after Task 1 (setup-storage) completes.
-Task 4 (build-avatar-component) depends on both Tasks 2 and 3.
-
-Risk: The avatar upload size limit must be enforced both client-side (file input) and
-server-side (Supabase storage policy). Both agents must use the same 5MB limit value.
-Extract it as a constant in lib/constants.ts and import from both places.
-```
-
-### Team Members
-
-A roster of agents assigned in this plan. Used by `kova team-build` to register agents before execution begins.
-
-```markdown
-## Team Members
-
-- **supabase-specialist**: Tasks 1 (setup-storage)
-- **backend-engineer**: Task 2 (build-api)
-- **frontend-specialist**: Tasks 3 (build-ui), 4 (build-avatar-component)
-- **quality-engineer**: Task 5 (validate)
-```
-
-## Task Metadata Fields
-
-Every task under `## Step by Step Tasks` can include these fields:
-
-| Field         | Required    | Format                          | Description                                                                                      |
-| ------------- | ----------- | ------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `Task ID`     | Yes         | kebab-case string               | Unique identifier. Used in `Depends On` references. Must be unique within the plan.              |
-| `Agent`       | Yes         | Agent type name                 | The specialist agent to assign. See [Agent Types](/docs/reference/agent-types).                  |
-| `Model`       | No          | `haiku`, `sonnet`, or `opus`    | Override auto-selected model for this task only.                                                 |
-| `Depends On`  | Recommended | Task ID or comma-separated list | Tasks that must complete before this one starts. Use `none` for independent tasks.               |
-| `Parallel`    | No          | `true` or `false`               | Mark `true` if this task can run alongside unrelated tasks. Default: determined by dependencies. |
-| `Assigned To` | No          | Agent name string               | Named agent instance (used in `team-build` with Agent Teams).                                    |
-
-## Dependency Syntax
-
-### No dependencies (runs first)
-
-```markdown
-- **Depends On**: none
-```
-
-### Single dependency
-
-```markdown
-- **Depends On**: setup-storage
-```
-
-### Multiple dependencies (all must complete before this task starts)
-
-```markdown
-- **Depends On**: build-api, build-ui
-```
-
-### Circular dependencies
-
-Circular dependencies are detected by the plan validator and cause the plan to be rejected. Every dependency chain must have at least one task with `Depends On: none`.
-
-## Complete Example Plan
-
-```markdown
-## Task Description
-
-Add user profile editing with avatar upload. Users can update display name,
-bio, and avatar. Profile changes are immediately visible across the app.
-
-## Objective
-
-Profile edit screen allows updating name, bio, and avatar image. Avatar
-upload accepts JPEG/PNG up to 5MB. Changes persist and appear within 2 seconds.
-
-## Relevant Files
-
-- `lib/services/profiles.ts` - Profile service functions
-- `app/profile/edit.tsx` - Profile edit screen (create)
-- `components/common/AvatarUpload.tsx` - Avatar upload component (create)
-- `supabase/migrations/` - Storage bucket migration
-- `types/database.types.ts` - Profile type updates
-
-## Step by Step Tasks
-
-### 1. Create avatar storage bucket
-
-- **Task ID**: setup-storage
-- **Agent**: supabase-specialist
-- **Model**: haiku
-- **Depends On**: none
-- Create `avatars` Supabase Storage bucket with public read access.
-- Add migration with RLS policy: authenticated users can insert, owner can update/delete.
-
-### 2. Build profile service functions
-
-- **Task ID**: build-api
-- **Agent**: backend-engineer
-- **Model**: sonnet
-- **Depends On**: setup-storage
-- Add `updateProfile(userId, data)` to lib/services/profiles.ts.
-- Add `uploadAvatar(userId, file)` returning public URL.
-- Update ProfileData type to include `avatar_url: string | null`.
-
-### 3. Build profile edit screen
-
-- **Task ID**: build-ui
-- **Agent**: frontend-specialist
-- **Model**: sonnet
-- **Depends On**: setup-storage
-- Create app/profile/edit.tsx with name, bio fields.
-- Wire to `updateProfile` on form submit.
-- Show success/error toast on completion.
-
-### 4. Build avatar upload component
-
-- **Task ID**: build-avatar-component
-- **Agent**: frontend-specialist
-- **Model**: sonnet
-- **Depends On**: build-api, build-ui
-- Create components/common/AvatarUpload.tsx.
-- Accept JPEG/PNG only, max 5MB, validate client-side.
-- Call `uploadAvatar` on selection, update profile `avatar_url`.
-- Show current avatar with tap-to-change interaction.
-
-### 5. Validate profile editing
-
-- **Task ID**: validate
-- **Agent**: quality-engineer
-- **Model**: sonnet
-- **Depends On**: build-avatar-component
-- Verify all acceptance criteria.
-- Run: tsc --noEmit, biome check .
-- Confirm avatar upload, profile save, and data persistence.
-
-## Acceptance Criteria
-
-1. Display name and bio can be updated from the profile edit screen
-2. Avatar upload accepts JPEG and PNG up to 5MB, rejects other formats and larger files
-3. Uploaded avatar appears within 2 seconds
-4. TypeScript compiles with no errors
-5. Lint passes with no warnings
-6. Profile data persists across page refresh
-7. All existing profile tests continue to pass
-
-## Team Orchestration
-
-Tasks build-api and build-ui can run in parallel after setup-storage completes.
-build-avatar-component requires both. Use the same 5MB size constant in both
-client validation and server-side storage policy.
-
-## Team Members
-
-- **supabase-specialist**: setup-storage
-- **backend-engineer**: build-api
-- **frontend-specialist**: build-ui, build-avatar-component
-- **quality-engineer**: validate
-```
-
-## Manual Plan Writing
-
-You do not need to use `kova plan` to create plans. Write a plan file directly in `.claude/tasks/` and run:
+## Usage
 
 ```bash
-kova build .claude/tasks/my-manual-plan.md
+kova report --format json
+kova report --format json --month 2026-03
+kova report --format json --output report.json
 ```
 
-Manual plans must pass the same validator as generated plans. Run `kova build --dry-run` to validate without executing:
+## Top-Level Fields
+
+| Field           | Type   | Description                                                           |
+| --------------- | ------ | --------------------------------------------------------------------- |
+| `period`        | object | Date range covered by this report. See [period](#period).            |
+| `total_cost_usd`| number | Total spend across all tools and models for the period.              |
+| `total_sessions`| number | Total unique sessions across all tools.                              |
+| `total_tokens`  | object | Aggregate token counts. See [total_tokens](#total_tokens).           |
+| `by_tool`       | array  | Per-tool cost breakdown. See [by_tool](#by_tool).                    |
+| `by_model`      | array  | Per-model cost breakdown. See [by_model](#by_model).                 |
+| `by_project`    | array  | Per-project cost breakdown. See [by_project](#by_project).           |
+| `generated_at`  | string | ISO 8601 timestamp when this report was generated.                   |
+
+## period
+
+| Field    | Type   | Description                     |
+| -------- | ------ | ------------------------------- |
+| `start`  | string | ISO 8601 start of the period.   |
+| `end`    | string | ISO 8601 end of the period.     |
+| `label`  | string | Human-readable label, e.g. `"March 2026"` or `"Last 30 Days"`. |
+
+## total_tokens
+
+| Field    | Type   | Description                          |
+| -------- | ------ | ------------------------------------ |
+| `input`  | number | Total input tokens across all tools. |
+| `output` | number | Total output tokens across all tools.|
+
+## by_tool
+
+Array of objects, one per AI tool that had usage in the period. Sorted by `cost_usd` descending.
+
+| Field      | Type   | Description                                          |
+| ---------- | ------ | ---------------------------------------------------- |
+| `tool`     | string | Tool identifier. See [Collectors Reference](/docs/reference/agent-types). |
+| `cost_usd` | number | Total cost for this tool in the period.              |
+| `sessions` | number | Unique session count for this tool.                  |
+| `tokens`   | object | `{ input: number, output: number }` token totals.    |
+
+## by_model
+
+Array of objects, one per model that had usage in the period. Sorted by `cost_usd` descending.
+
+| Field      | Type   | Description                                          |
+| ---------- | ------ | ---------------------------------------------------- |
+| `model`    | string | Normalized model name. See [Usage Data Format](/docs/reference/checkpoint-format). |
+| `cost_usd` | number | Total cost for this model in the period.             |
+| `requests` | number | Total request count (one per usage record).          |
+| `tokens`   | object | `{ input: number, output: number }` token totals.    |
+
+## by_project
+
+Array of objects, one per project that had usage in the period. Projects with `null` project values are grouped under `"(unknown)"`. Sorted by `cost_usd` descending.
+
+| Field      | Type   | Description                                          |
+| ---------- | ------ | ---------------------------------------------------- |
+| `project`  | string | Project name from the usage records.                 |
+| `cost_usd` | number | Total cost for this project in the period.           |
+| `sessions` | number | Unique session count for this project.               |
+| `tools`    | array  | List of tool identifier strings used in this project.|
+
+## Complete Example
+
+```json
+{
+  "period": {
+    "start": "2026-03-01T00:00:00.000Z",
+    "end": "2026-03-31T23:59:59.999Z",
+    "label": "March 2026"
+  },
+  "total_cost_usd": 60.58,
+  "total_sessions": 406,
+  "total_tokens": {
+    "input": 2048000,
+    "output": 594000
+  },
+  "by_tool": [
+    {
+      "tool": "claude_code",
+      "cost_usd": 42.18,
+      "sessions": 94,
+      "tokens": { "input": 1228800, "output": 393216 }
+    },
+    {
+      "tool": "cursor",
+      "cost_usd": 18.40,
+      "sessions": 312,
+      "tokens": { "input": 819200, "output": 200784 }
+    },
+    {
+      "tool": "copilot",
+      "cost_usd": 0.00,
+      "sessions": 0,
+      "tokens": { "input": 0, "output": 0 }
+    }
+  ],
+  "by_model": [
+    {
+      "model": "opus",
+      "cost_usd": 28.40,
+      "requests": 12,
+      "tokens": { "input": 409600, "output": 131072 }
+    },
+    {
+      "model": "sonnet",
+      "cost_usd": 13.78,
+      "requests": 82,
+      "tokens": { "input": 819200, "output": 262144 }
+    },
+    {
+      "model": "gpt-4o",
+      "cost_usd": 18.40,
+      "requests": 312,
+      "tokens": { "input": 819200, "output": 200784 }
+    }
+  ],
+  "by_project": [
+    {
+      "project": "kova-website",
+      "cost_usd": 28.40,
+      "sessions": 187,
+      "tools": ["claude_code", "cursor"]
+    },
+    {
+      "project": "kova-api",
+      "cost_usd": 19.80,
+      "sessions": 142,
+      "tools": ["claude_code"]
+    },
+    {
+      "project": "etl-pipeline",
+      "cost_usd": 12.38,
+      "sessions": 77,
+      "tools": ["cursor", "copilot"]
+    }
+  ],
+  "generated_at": "2026-03-19T14:32:00.000Z"
+}
+```
+
+## Using the JSON Output
+
+### Save to file
 
 ```bash
-kova build --dry-run .claude/tasks/my-manual-plan.md
-# Validates plan structure and prints task graph
-# Does not start any agents
+kova report --format json --month 2026-03 --output march-report.json
+```
+
+### Extract a single field with jq
+
+```bash
+kova report --format json | jq '.total_cost_usd'
+```
+
+### Get per-tool costs as a table
+
+```bash
+kova report --format json | jq -r '.by_tool[] | [.tool, .cost_usd] | @tsv'
+```
+
+### CI cost gate
+
+```bash
+COST=$(kova report --format json | jq '.total_cost_usd')
+echo "Monthly spend: $COST"
 ```
 
 ## Related
 
-- [kova plan](/docs/commands/plan) - Generate plans automatically
-- [kova build](/docs/commands/build) - Execute a plan
-- [Agent Types](/docs/reference/agent-types) - Valid agent type names
-- [Plan Templates](/docs/guides/plan-templates) - Pre-built plan structures
-- [kova.yaml Reference](/docs/reference/kova-yaml) - plan_validation configuration
+- [kova report](/docs/commands/report) - Generate cost reports
+- [kova ci-report](/docs/commands/ci-report) - CI-optimized report with JSON output
+- [Usage Data Format](/docs/reference/checkpoint-format) - Schema for raw usage records
+- [Collectors Reference](/docs/reference/agent-types) - Tool identifier values

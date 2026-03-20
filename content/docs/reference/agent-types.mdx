@@ -1,139 +1,196 @@
 ---
-title: Agent Types
-description: Complete reference for all specialist agent types — specialty, default model, and when to use each
+title: Collectors Reference
+description: Complete reference for all 11 Kova collectors -- file paths, platform support, and data collected
 ---
 
-# Agent Types
+# Collectors Reference
 
-Kova routes tasks to specialist agents based on the domain of work. Each agent type carries a system prompt optimized for its specialty, a default model assignment, and context about the project stack.
+Kova ships 11 collectors, one for each supported AI tool. Each collector knows where the tool stores its usage data on disk (or which API to call), how to parse the format, and how to convert raw entries into Kova's normalized `UsageRecord` schema.
 
-The planning agent selects agent types automatically. You can also specify them explicitly in plan files.
+Collectors run during `kova track` and `kova init`. You can target a single collector with `kova track --tool <name>`.
 
-## Core Specialists
+---
 
-These 8 agents cover the domains needed by most projects:
+## Claude Code
 
-| Agent type              | Specialty                                                       | Default model | When to use                                                                              |
-| ----------------------- | --------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------- |
-| `frontend-specialist`   | React, Vue, React Native, UI components, CSS, animations        | sonnet        | Screens, components, styling, user interactions, responsive layouts                      |
-| `backend-engineer`      | Node.js, APIs, business logic, middleware, server-side logic    | sonnet        | Service functions, API routes, controllers, middleware, webhook handlers                 |
-| `supabase-specialist`   | PostgreSQL, migrations, RLS policies, Edge Functions, real-time | opus          | Database schema, migrations, queries, RLS rules, Supabase edge functions                 |
-| `quality-engineer`      | Testing, validation, code review, acceptance criteria           | sonnet        | Validating completed tasks against acceptance criteria, writing tests, regression checks |
-| `security-auditor`      | Auth, encryption, OWASP vulnerabilities, RLS, secrets           | opus          | Authentication code, authorization rules, security audits, vulnerability remediation     |
-| `performance-optimizer` | Query optimization, caching, bundle analysis, profiling         | opus          | Slow endpoints, high DB query times, large bundles, Core Web Vitals                      |
-| `debugger-detective`    | Root cause analysis, error tracing, reproduction                | sonnet        | Bug investigation, production incidents, intermittent failures                           |
-| `code-simplifier`       | Refactoring, clean code, DRY, module extraction                 | sonnet        | Code cleanup, extracting shared logic, reducing duplication, splitting large files       |
+**Collector key:** `claude_code`
 
-## Extended Specialists
+**Source:** Local JSONL conversation history files
 
-Additional specialists for specific domains:
+| Platform | Data path |
+| -------- | --------- |
+| macOS    | `~/.claude/projects/**/*.jsonl` |
+| Linux    | `~/.claude/projects/**/*.jsonl` |
+| Windows  | `%USERPROFILE%\.claude\projects\**\*.jsonl` |
 
-| Agent type               | Specialty                                                         | Default model | When to use                                                                                     |
-| ------------------------ | ----------------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------- |
-| `mobile-developer`       | React Native, Expo, iOS/Android APIs, native modules              | sonnet        | Mobile-specific components, device APIs, Expo configuration, app store preparation              |
-| `devops-engineer`        | CI/CD, Docker, Kubernetes, deployment pipelines                   | sonnet        | Infrastructure as code, GitHub Actions, deployment scripts, container configuration             |
-| `data-engineer`          | ETL pipelines, data transformation, analytics queries             | sonnet        | Data ingestion, transformation logic, analytics endpoints                                       |
-| `ml-engineer`            | ML model integration, inference, training pipelines               | opus          | Embedding models, fine-tuning, inference APIs, ML pipeline configuration                        |
-| `api-designer`           | REST, GraphQL, OpenAPI specification, API contracts               | sonnet        | API design, endpoint structure, OpenAPI documentation, versioning strategy                      |
-| `test-writer`            | Unit tests, integration tests, E2E tests, test coverage           | sonnet        | Writing or expanding test suites, test strategy, coverage improvements                          |
-| `doc-writer`             | Technical documentation, README, guides, API docs                 | haiku         | Documentation tasks (uses haiku -- much cheaper for text-only work)                             |
-| `architect`              | System design, ADRs, technical decisions, architecture            | opus          | Cross-system decisions, architectural tradeoffs, decisions affecting multiple domains           |
-| `database-administrator` | Query optimization, indexing, replication, non-Supabase databases | opus          | PostgreSQL/MySQL/Mongo without Supabase, query plan analysis, index design                      |
-| `master-orchestrator`    | Codebase exploration, dependency mapping, plan coordination       | opus          | Used internally by `kova plan` -- rarely assigned to individual tasks                           |
-| `deep-researcher`        | Technical research, library evaluation, documentation synthesis   | sonnet        | Investigating unfamiliar APIs, evaluating library options, research-heavy tasks                 |
-| `general-purpose`        | All domains, fallback                                             | sonnet        | Tasks spanning multiple domains, configuration, documentation, tasks without a clear specialist |
+The path root can be overridden with the `CLAUDE_HOME` environment variable.
 
-## Agent Specialization Notes
+**Data collected:** input tokens, output tokens (including cache creation and cache read tokens), model name (haiku/sonnet/opus), session ID, project directory, timestamp, stop reason.
 
-### supabase-specialist vs database-administrator
+**Cost calculation:** Token costs are applied using `TOKEN_COSTS` rates per model. Cache read tokens are billed at a reduced rate.
 
-Use `supabase-specialist` for projects using Supabase. This agent knows the Supabase client API, Row Level Security patterns, Edge Functions, and the Supabase migration format.
+---
 
-Use `database-administrator` for projects using PostgreSQL, MySQL, MongoDB, or other databases directly (without Supabase). This agent focuses on SQL query optimization, index design, and database-level configuration.
+## Cursor
 
-### security-auditor vs backend-engineer
+**Collector key:** `cursor`
 
-For authentication routes, authorization checks, RLS policies, or any code handling sensitive data, use `security-auditor` rather than `backend-engineer`. The security-auditor defaults to `opus` and carries context about OWASP Top 10, common authentication vulnerabilities, and safe cryptographic practices. A backend engineer completing an auth task is less reliable than a security auditor on the same task.
+**Source:** Cursor API (requires API key stored via `kova config set-key cursor <key>`)
 
-### quality-engineer as validator
+| Platform | Local state database (used for availability check) |
+| -------- | -------------------------------------------------- |
+| macOS    | `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb` |
+| Linux    | `~/.config/Cursor/User/globalStorage/state.vscdb` |
+| Windows  | `%APPDATA%\Cursor\User\globalStorage\state.vscdb` |
 
-The `quality-engineer` is primarily used as the final validation step in a plan. Its job is to verify the output of other agents against the plan's acceptance criteria. It reads completed files, runs quality commands (lint, test, typecheck), and reports pass/fail.
+**Data collected:** timestamp, model, input tokens, output tokens, cache read/write tokens, charged cents per event.
 
-The quality-engineer should not implement features. If the quality check fails, the build fails rather than having the quality-engineer attempt a fix. Fixes go back to the appropriate domain specialist.
+**Cost calculation:** Uses Cursor pool rates: input $1.25/1M, output $6.00/1M, cache read $0.25/1M, cache write $1.25/1M. If `chargedCents` is present on the event, that value is used directly.
 
-### doc-writer for cost efficiency
+---
 
-The `doc-writer` uses `haiku` by default. Documentation tasks are text-heavy and do not require the reasoning depth of sonnet or opus. Assigning documentation tasks to `doc-writer` instead of `general-purpose` or `backend-engineer` saves significant tokens at no quality cost.
+## GitHub Copilot
 
-### architect for cross-cutting decisions
+**Collector key:** `copilot`
 
-Use `architect` when a decision affects multiple systems or domains. For example, deciding whether to use server-side rendering vs. static generation vs. edge functions is an architectural decision. The architect agent uses `opus` and is instructed to document decisions as Architecture Decision Records (ADRs).
+**Source:** Local VS Code extension chat session files, with optional GitHub Billing API fallback (requires PAT stored via `kova config set-key copilot <pat>`)
 
-## Specifying Agents in Plan Files
+| Platform | Chat session path |
+| -------- | ----------------- |
+| macOS    | `~/Library/Application Support/Code/User/globalStorage/github.copilot-chat/` |
+| Linux    | `~/.config/Code/User/globalStorage/github.copilot-chat/` |
+| Windows  | `%APPDATA%\Code\User\globalStorage\github.copilot-chat\` |
 
-Assign agents explicitly in any task definition:
+**Data collected:** conversation ID, model, prompt token count, completion token count, timestamp per request.
 
-```markdown
-### 2. Create auth schema
+**Cost calculation:** Token costs applied using `TOKEN_COSTS` rates. Copilot is a flat-rate subscription for most users, so `cost_usd` will be `0` unless token-level data is available from the billing API.
 
-- **Task ID**: setup-auth-schema
-- **Agent**: supabase-specialist
-- **Model**: opus
-- **Depends On**: none
-- Create profiles table with role column (free, admin, partner)
-- Add RLS policies restricting profile access to the authenticated user
-- Create index on profiles(email) for login lookups
-```
+---
 
-Valid values for the `Agent` field are any agent type name from this page, in kebab-case.
+## Windsurf
 
-## Default Model Override
+**Collector key:** `windsurf`
 
-The default model for any agent can be overridden three ways, in priority order:
+**Source:** Windsurf API (requires service key stored via `kova config set-key windsurf <key>`)
 
-1. **Plan file**: `Model: haiku` in the task definition (highest priority)
-2. **Build flag**: `kova build --model-override sonnet` (overrides all tasks)
-3. **kova.yaml**: `models.trivial`, `models.moderate`, `models.complex` (baseline)
+**Data collected:** credit usage per session, model (SWE-1.5, SWE-1.5-fast), timestamps, session metadata.
 
-## Adding Custom Agent Types
+**Cost calculation:** Credits are converted to USD using plan rates: Pro plan $0.02/credit, Teams plan $0.04/credit.
 
-Custom agents can be created by adding skill files to `.claude/skills/`. Create a markdown file with the agent's domain expertise and system prompt:
+---
 
-```markdown
-# .claude/skills/stripe-specialist.md
+## Devin
 
-You are a Stripe payment integration specialist with deep expertise in:
+**Collector key:** `devin`
 
-- PaymentIntent and SetupIntent flows
-- Subscription management and billing cycles
-- Webhook event handling and idempotency
-- Connect platform accounts
-- Stripe Elements and embedded UI components
+**Source:** Devin Enterprise API at `https://api.devin.ai/v3/enterprise/consumption/daily` (requires API key stored via `kova config set-key devin <key>`)
 
-When implementing payment features:
+**Data collected:** daily ACU (Agent Compute Unit) consumption, session count, date.
 
-1. Always handle webhook events idempotently
-2. Store Stripe IDs in your database for all created objects
-3. Use Stripe's test mode for all development work
-   ...
-```
+**Cost calculation:** ACUs converted to USD at $2.25/ACU (Core plan) or $2.00/ACU (Teams plan). The plan tier is inferred from account data returned by the API.
 
-Reference custom agent types in plan files by their filename without extension:
+---
 
-```markdown
-- **Agent**: stripe-specialist
-```
+## Aider
 
-Custom agents can also be added to the `agents` mapping in `kova.yaml`:
+**Collector key:** `aider`
 
-```yaml
-agents:
-  payments: "stripe-specialist"
-```
+**Source:** Local chat history files and cost report files
+
+| File type | Locations searched |
+| --------- | ------------------ |
+| Chat history | `~/.aider.chat.history.md`, `<cwd>/.aider.chat.history.md` |
+| Cost reports | `~/.aider/reports/`, `<cwd>/.aider/reports/` |
+
+Aider writes both a markdown chat history and structured JSON cost reports when `--cost` is enabled.
+
+**Data collected:** model name, input tokens, output tokens, cost per session (from Aider's own cost tracking when available), timestamp.
+
+**Cost calculation:** Uses Aider's reported cost if present in the report file. Falls back to `TOKEN_COSTS` token rate lookup by model name.
+
+---
+
+## Continue.dev
+
+**Collector key:** `continue_dev`
+
+**Source:** Local session files written by the Continue VS Code extension
+
+| Platform | Sessions directory |
+| -------- | ------------------ |
+| All      | `~/.continue/sessions/` |
+
+**Data collected:** model, input/output tokens per prompt log entry, session ID, project, timestamp.
+
+**Cost calculation:** Token costs applied per `TOKEN_COSTS` rates. Continue.dev supports many model providers; the collector normalizes model names from the raw `completionOptions.model` or `modelTitle` field.
+
+---
+
+## Cline
+
+**Collector key:** `cline`
+
+**Source:** VS Code extension globalStorage task files (one JSON file per Cline task)
+
+| Platform | Storage path |
+| -------- | ------------ |
+| macOS    | `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/` |
+| Linux    | `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/` |
+| Windows  | `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\` |
+
+**Data collected:** task ID, model, input/output tokens, cost estimate (from Cline's own tracking), timestamp.
+
+**Cost calculation:** Uses Cline's recorded cost per task when available. Falls back to `TOKEN_COSTS` rate lookup.
+
+---
+
+## Amazon Q Developer
+
+**Collector key:** `amazon_q`
+
+**Source:** AWS Cost Explorer API. Requires AWS credentials stored via `kova config set-key amazon_q <ACCESS_KEY_ID>:<SECRET_ACCESS_KEY>`, or ambient AWS credentials (environment variables, `~/.aws/credentials`, or EC2 instance role).
+
+**Data collected:** daily token usage and cost from the AWS billing API, filtered to Amazon Q Developer service entries.
+
+**Cost calculation:** Uses Cost Explorer's reported cost directly. Falls back to an estimated rate of $3.00/1M input tokens and $15.00/1M output tokens when token-level billing data is unavailable.
+
+---
+
+## Bolt.new
+
+**Collector key:** `bolt`
+
+**Source:** Bolt.new API (pending public availability). Requires API key stored via `kova config set-key bolt <key>`.
+
+**Data collected:** session usage and cost as reported by the Bolt.new API.
+
+**Note:** Bolt.new does not currently expose a public usage API. When the API becomes available, Kova will collect usage automatically. In the meantime, the collector stores your API key and returns empty records.
+
+---
+
+## Lovable
+
+**Collector key:** `lovable`
+
+**Source:** Lovable API (pending public availability). Requires API key stored via `kova config set-key lovable <key>`.
+
+**Data collected:** session usage and cost as reported by the Lovable API.
+
+**Note:** Similar to Bolt.new, Lovable does not yet expose a public usage API. The collector will activate automatically when the API is available.
+
+---
+
+## Collector Availability Check
+
+Each collector implements an `isAvailable()` method that Kova calls during `kova init` and `kova track` to determine whether the tool is installed. The check varies by collector:
+
+- **File-based collectors** (Claude Code, Copilot, Cline, Continue.dev): check whether the data directory exists on disk.
+- **API-based collectors** (Cursor, Windsurf, Devin, Amazon Q, Bolt, Lovable): check whether an API key is stored in the Kova credential store.
+- **Aider**: checks whether any `.aider.chat.history.md` file exists in the home directory or current working directory.
 
 ## Related
 
-- [Plan Format](/docs/reference/plan-format) - How to assign agents to tasks in plan files
-- [Model Tiering](/docs/guides/model-tiering) - How default models are selected and overridden
-- [kova.yaml Reference](/docs/reference/kova-yaml) - agents section configuration
-- [Plan Templates](/docs/guides/plan-templates) - Which agents each template assigns by default
+- [kova init](/docs/commands/init) - Auto-detect and scan all available collectors
+- [kova track](/docs/commands/track) - Run a collector scan on demand
+- [Configuration Reference](/docs/reference/kova-yaml) - Configure collector API keys and settings
+- [Usage Data Format](/docs/reference/checkpoint-format) - Schema for collected usage records

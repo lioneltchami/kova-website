@@ -222,10 +222,20 @@ export function UsageTable({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full" aria-label="Usage records table">
             <thead>
               <tr className="text-left border-b border-kova-border">
-                <th className="pb-3 pr-4">
+                <th
+                  className="pb-3 pr-4"
+                  scope="col"
+                  aria-sort={
+                    localSort.field === "recorded_at"
+                      ? localSort.dir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                  }
+                >
                   <SortButton
                     field="recorded_at"
                     currentField={localSort.field}
@@ -235,7 +245,17 @@ export function UsageTable({
                     When
                   </SortButton>
                 </th>
-                <th className="pb-3 pr-4">
+                <th
+                  className="pb-3 pr-4"
+                  scope="col"
+                  aria-sort={
+                    localSort.field === "tool"
+                      ? localSort.dir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                  }
+                >
                   <SortButton
                     field="tool"
                     currentField={localSort.field}
@@ -245,7 +265,17 @@ export function UsageTable({
                     Tool
                   </SortButton>
                 </th>
-                <th className="pb-3 pr-4">
+                <th
+                  className="pb-3 pr-4"
+                  scope="col"
+                  aria-sort={
+                    localSort.field === "model"
+                      ? localSort.dir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                  }
+                >
                   <SortButton
                     field="model"
                     currentField={localSort.field}
@@ -255,7 +285,17 @@ export function UsageTable({
                     Model
                   </SortButton>
                 </th>
-                <th className="pb-3 pr-4">
+                <th
+                  className="pb-3 pr-4"
+                  scope="col"
+                  aria-sort={
+                    localSort.field === "project"
+                      ? localSort.dir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                  }
+                >
                   <SortButton
                     field="project"
                     currentField={localSort.field}
@@ -265,7 +305,17 @@ export function UsageTable({
                     Project
                   </SortButton>
                 </th>
-                <th className="pb-3 pr-4">
+                <th
+                  className="pb-3 pr-4"
+                  scope="col"
+                  aria-sort={
+                    localSort.field === "tokens"
+                      ? localSort.dir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                  }
+                >
                   <SortButton
                     field="tokens"
                     currentField={localSort.field}
@@ -275,7 +325,17 @@ export function UsageTable({
                     Tokens
                   </SortButton>
                 </th>
-                <th className="pb-3">
+                <th
+                  className="pb-3"
+                  scope="col"
+                  aria-sort={
+                    localSort.field === "cost_usd"
+                      ? localSort.dir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                  }
+                >
                   <SortButton
                     field="cost_usd"
                     currentField={localSort.field}

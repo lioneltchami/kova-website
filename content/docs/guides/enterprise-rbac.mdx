@@ -1,0 +1,152 @@
+---
+title: Enterprise RBAC
+description: Configure role-based access control, cost centers, team budgets, and project tagging for Enterprise and Team plan workspaces
+---
+
+# Enterprise RBAC
+
+Kova's Team and Enterprise plans include role-based access control (RBAC), cost centers, and per-team budget management. This guide walks through setting up workspace roles, organizing projects into cost centers, and enforcing spending limits by team.
+
+## Workspace Roles
+
+Each user in a Kova workspace is assigned one of three roles:
+
+| Role    | Permissions                                                                                  |
+| ------- | -------------------------------------------------------------------------------------------- |
+| `admin` | Full access: manage members, set org policies, configure SSO, view all cost centers          |
+| `member`| View all cost data, manage their own API keys, run syncs                                     |
+| `viewer`| Read-only access to cost reports and the dashboard. Cannot sync data or edit configuration.  |
+
+Roles are managed in the dashboard at **Settings > Members**. Admins can invite users by email and assign roles at invite time.
+
+## Cost Centers
+
+Cost centers are named groups that aggregate spending from one or more projects. They let you see exactly how much each team or product area is spending on AI tools.
+
+### Create a cost center
+
+```bash
+kova tag my-project --cost-center "Backend Team"
+```
+
+If `"Backend Team"` does not exist, Kova creates it. The mapping is stored locally and synced to the cloud on the next `kova sync` run.
+
+### Map multiple projects to a cost center
+
+```bash
+kova tag kova-api --cost-center "Backend Team"
+kova tag kova-cli --cost-center "Backend Team"
+kova tag data-pipeline --cost-center "Data Platform"
+```
+
+### View current mappings
+
+```bash
+kova tag
+```
+
+```
+  Cost Center Mappings
+  ------------------------------------------------
+  Backend Team        kova-api, kova-cli
+  Data Platform       data-pipeline
+  Frontend            kova-website, marketing-site
+```
+
+### Sync cost centers to the dashboard
+
+```bash
+kova sync
+```
+
+After syncing, cost centers appear in the dashboard under **Reports > By Cost Center**.
+
+## Team Budgets
+
+Set a budget per cost center in the dashboard under **Settings > Budgets**. When a cost center's monthly spend reaches the warning threshold, all members with the `admin` or `member` role receive an alert via the configured notification channel (email, Slack, or Discord).
+
+### Set an org-wide monthly budget via CLI
+
+```bash
+kova budget --monthly 500
+```
+
+This sets a global budget for the entire workspace. Cost center budgets are set in the dashboard and are not currently configurable via the CLI.
+
+### Budget alert thresholds
+
+```bash
+kova budget --warn-at 80   # Warn at 80% of budget used
+```
+
+The warning threshold applies to both the org-wide budget and per-cost-center budgets.
+
+## Using kova tag for Project Attribution
+
+The `kova tag` command maps project directory names to cost centers. The project name Kova detects during `kova track` is the `name` field from `package.json` in the working directory, or the directory name if no `package.json` is present.
+
+To check what project name a directory produces, run:
+
+```bash
+kova costs --group-by project --since 7d
+```
+
+Look at the **Project** column. Use the exact value shown as the first argument to `kova tag`.
+
+## SSO for Enterprise Teams
+
+Enterprise workspaces can require SSO so that all members authenticate via the company identity provider.
+
+### Configure SSO on each developer machine
+
+```bash
+kova sso configure --issuer https://okta.mycompany.com/oauth2/default
+kova sso login
+```
+
+### Enforce SSO compliance
+
+```bash
+kova policy enforce
+```
+
+This runs a local check to verify SSO is enabled. Use it in onboarding scripts or CI to ensure all machines are compliant:
+
+```bash
+#!/bin/bash
+kova policy enforce || {
+  echo "Kova policy violations found. Fix before proceeding."
+  exit 1
+}
+```
+
+## Policy Enforcement
+
+The `kova policy` command lets admins define and enforce org-level rules. Currently supported local policies:
+
+| Policy                  | Description                        | Fix                                           |
+| ----------------------- | ---------------------------------- | --------------------------------------------- |
+| `budget.monthly_usd`    | Monthly budget must be configured  | `kova budget --monthly <amount>`              |
+| `sso.enabled`           | SSO must be configured             | `kova sso configure --issuer <url>`           |
+
+Run `kova policy enforce` as part of your developer onboarding checklist or as a CI step.
+
+## Recommended Team Setup Checklist
+
+1. Admin creates the workspace at [kova.dev/dashboard](https://kova.dev/dashboard) and invites members.
+2. Each developer installs Kova and runs `kova init`.
+3. Admin configures SSO: `kova sso configure --issuer <url>`.
+4. Admin distributes the SSO issuer URL to all developers.
+5. Each developer runs `kova sso login` to authenticate.
+6. Admin sets org-wide budget: `kova budget --monthly <amount>`.
+7. Each developer tags their projects: `kova tag <project> --cost-center <team>`.
+8. Automate daily sync with a cron job or `auto_sync: true` in `~/.kova/config.json`.
+9. Add `kova policy enforce` to CI to block non-compliant machines.
+
+## Related
+
+- [kova tag](/docs/commands/tag) - Map projects to cost centers
+- [kova sso](/docs/commands/sso) - Configure SSO authentication
+- [kova policy](/docs/commands/policy) - Enforce org policies
+- [kova budget](/docs/commands/budget) - Set spending budgets
+- [CI/CD Integration guide](/docs/guides/ci-cd-integration) - Add cost gates to your pipeline

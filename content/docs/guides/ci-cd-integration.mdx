@@ -1,0 +1,227 @@
+---
+title: CI/CD Integration
+description: Add AI cost reporting and cost gates to GitHub Actions and GitLab CI using kova ci-report
+---
+
+# CI/CD Integration
+
+Kova integrates with CI/CD pipelines to surface AI tool costs on every build. Use `kova ci-report` to generate a JSON cost report and fail the pipeline when spending exceeds a threshold.
+
+## Overview
+
+The typical CI integration does two things:
+
+1. **Collects usage data** -- runs `kova track` to capture AI tool usage since the last run.
+2. **Reports and gates** -- runs `kova ci-report --format json` to output a structured cost summary, then checks the total against a threshold.
+
+Usage data is read from the local `~/.kova/usage.json` store on the CI runner. For accurate reporting, either persist `~/.kova/` across CI runs (using caching) or configure auto-sync so records are uploaded after each developer session.
+
+## GitHub Actions
+
+### Basic cost report step
+
+Add a step to any workflow to print a cost summary:
+
+```yaml
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Kova
+        run: npm install -g kova-cli
+
+      - name: AI Cost Report
+        run: kova ci-report
+```
+
+### Cost gate -- fail if weekly spend exceeds threshold
+
+```yaml
+name: Cost Gate
+
+on:
+  schedule:
+    - cron: '0 9 * * MON'   # Every Monday at 9 AM
+
+jobs:
+  cost-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Kova
+        run: npm install -g kova-cli
+
+      - name: Restore Kova cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.kova
+          key: kova-usage-${{ github.ref }}
+          restore-keys: kova-usage-
+
+      - name: Generate cost report
+        run: kova ci-report --format json --period 7d > kova-report.json
+
+      - name: Check cost threshold
+        run: |
+          COST=$(jq '.period_cost_usd' kova-report.json)
+          THRESHOLD=50
+          echo "Weekly AI cost: \$$COST (threshold: \$$THRESHOLD)"
+          if (( $(echo "$COST > $THRESHOLD" | bc -l) )); then
+            echo "::error::Weekly AI cost \$$COST exceeds threshold \$$THRESHOLD"
+            exit 1
+          fi
+
+      - name: Upload cost report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kova-cost-report
+          path: kova-report.json
+```
+
+### PR comment with cost summary
+
+Post a cost summary as a pull request comment using the JSON output:
+
+```yaml
+- name: Generate cost report
+  run: kova ci-report --format json --period 30d > kova-report.json
+
+- name: Comment on PR
+  uses: actions/github-script@v7
+  if: github.event_name == 'pull_request'
+  with:
+    script: |
+      const report = require('./kova-report.json')
+      const cost = report.total_cost_usd.toFixed(2)
+      const sessions = report.sessions
+      const tools = report.by_tool.map(t => `${t.tool}: $${t.cost_usd.toFixed(2)}`).join(', ')
+      const body = `## AI Cost Report (Last 30 Days)\n\n**Total:** $${cost} across ${sessions} sessions\n\n${tools}`
+      github.rest.issues.createComment({
+        issue_number: context.issue.number,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        body
+      })
+```
+
+### Caching the usage store
+
+To accumulate data across runs, cache `~/.kova/`:
+
+```yaml
+- name: Restore Kova data
+  uses: actions/cache@v4
+  with:
+    path: ~/.kova
+    key: kova-${{ runner.os }}-${{ github.sha }}
+    restore-keys: |
+      kova-${{ runner.os }}-
+```
+
+## GitLab CI
+
+### Basic cost report job
+
+```yaml
+ai-cost-report:
+  stage: report
+  image: node:20
+  before_script:
+    - npm install -g kova-cli
+  script:
+    - kova ci-report
+  artifacts:
+    reports:
+      metrics: kova-metrics.txt
+    paths:
+      - kova-report.json
+    when: always
+```
+
+### Cost gate job
+
+```yaml
+ai-cost-gate:
+  stage: validate
+  image: node:20
+  variables:
+    COST_THRESHOLD: "50"
+  before_script:
+    - npm install -g kova-cli
+    - apt-get update -qq && apt-get install -y -qq jq bc
+  script:
+    - kova ci-report --format json --period 7d > kova-report.json
+    - |
+      COST=$(jq '.period_cost_usd' kova-report.json)
+      echo "Weekly AI cost: $COST"
+      if (( $(echo "$COST > $COST_THRESHOLD" | bc -l) )); then
+        echo "ERROR: Cost $COST exceeds threshold $COST_THRESHOLD"
+        exit 1
+      fi
+  artifacts:
+    paths:
+      - kova-report.json
+    when: always
+  cache:
+    key: kova-$CI_COMMIT_REF_SLUG
+    paths:
+      - ~/.kova/
+```
+
+## kova ci-report Output Reference
+
+The JSON output from `kova ci-report --format json` contains:
+
+```json
+{
+  "period_cost_usd": 14.20,
+  "baseline_cost_usd": 0,
+  "delta_usd": 14.20,
+  "delta_pct": 0,
+  "by_tool": [
+    { "tool": "claude_code", "cost_usd": 9.40, "sessions": 32 }
+  ],
+  "by_model": [
+    { "model": "sonnet", "cost_usd": 9.40, "requests": 28 }
+  ],
+  "sessions": 47,
+  "report_url": "https://kova.dev/dashboard"
+}
+```
+
+See the [CI Cost Report command reference](/docs/commands/ci-report) for the full schema.
+
+## Syncing from CI
+
+If your CI runners have access to Kova cloud credentials, you can sync the runner's collected data to the dashboard:
+
+```yaml
+- name: Sync to Kova dashboard
+  env:
+    KOVA_API_KEY: ${{ secrets.KOVA_API_KEY }}
+  run: |
+    kova login $KOVA_API_KEY
+    kova sync
+```
+
+Store the API key as a secret in your CI environment (`KOVA_API_KEY` in GitHub Actions, a masked variable in GitLab CI).
+
+## Tips
+
+- Run `kova track` before `kova ci-report` if you want the CI runner's own usage included in the report.
+- Use `--period 30d` for monthly reporting, `--period 7d` for weekly gates.
+- Store `~/.kova/` in CI cache to accumulate data across pipeline runs.
+- Use `jq` to extract specific fields for custom thresholds or alerts.
+
+## Related
+
+- [kova ci-report](/docs/commands/ci-report) - Command reference and JSON schema
+- [kova sync](/docs/commands/sync) - Sync usage data to the cloud
+- [kova report](/docs/commands/report) - Full cost reports for any time period
+- [Enterprise RBAC guide](/docs/guides/enterprise-rbac) - Team budgets and policy enforcement
