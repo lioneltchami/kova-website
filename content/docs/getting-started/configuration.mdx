@@ -23,15 +23,15 @@ You rarely need to edit these files by hand. Use `kova config set` and `kova bud
   "collectors": {
     "claude_code": { "enabled": true },
     "cursor": { "enabled": false, "db_path": null },
-    "copilot": { "enabled": false, "monthly_cost": 19.00 },
+    "copilot": { "enabled": false, "monthly_cost": 19.0 },
     "windsurf": { "enabled": false, "api_key": null },
     "devin": { "enabled": false, "api_key": null },
     "aider": { "enabled": false },
     "continue_dev": { "enabled": false },
     "cline": { "enabled": false },
     "amazon_q": { "enabled": false },
-    "bolt": { "enabled": false, "monthly_cost": 20.00 },
-    "lovable": { "enabled": false, "monthly_cost": 25.00 }
+    "bolt": { "enabled": false, "monthly_cost": 20.0 },
+    "lovable": { "enabled": false, "monthly_cost": 25.0 }
   },
   "sync": {
     "auto_sync": false,
@@ -47,6 +47,10 @@ You rarely need to edit these files by hand. Use `kova config set` and `kova bud
   "display": {
     "currency": "USD",
     "timezone": "local"
+  },
+  "orchestration": {
+    "fallback": true,
+    "session_budget": null
   }
 }
 ```
@@ -65,25 +69,25 @@ Set automatically by `kova login`. Do not edit manually.
 
 Controls which AI tools Kova collects usage data from. See [Setting up multi-tool tracking](/docs/guides/multi-tool-tracking) for step-by-step instructions per tool.
 
-| Field                     | Type    | Description                                        |
-| ------------------------- | ------- | -------------------------------------------------- |
-| `claude_code.enabled`     | boolean | Enable Claude Code tracking (default: true)        |
-| `cursor.enabled`          | boolean | Enable Cursor tracking                             |
-| `cursor.db_path`          | string  | Override auto-detected Cursor data path            |
-| `copilot.enabled`         | boolean | Enable GitHub Copilot tracking                     |
-| `copilot.monthly_cost`    | number  | Your Copilot subscription cost per seat in USD     |
-| `windsurf.enabled`        | boolean | Enable Windsurf tracking                           |
-| `windsurf.api_key`        | string  | Windsurf API key for usage polling                 |
-| `devin.enabled`           | boolean | Enable Devin tracking                              |
-| `devin.api_key`           | string  | Devin read-only API key                            |
-| `aider.enabled`           | boolean | Enable Aider tracking                              |
-| `continue_dev.enabled`    | boolean | Enable Continue.dev tracking                       |
-| `cline.enabled`           | boolean | Enable Cline tracking                              |
-| `amazon_q.enabled`        | boolean | Enable Amazon Q tracking                           |
-| `bolt.enabled`            | boolean | Enable Bolt tracking                               |
-| `bolt.monthly_cost`       | number  | Your Bolt subscription cost per seat in USD        |
-| `lovable.enabled`         | boolean | Enable Lovable tracking                            |
-| `lovable.monthly_cost`    | number  | Your Lovable subscription cost per seat in USD     |
+| Field                  | Type    | Description                                    |
+| ---------------------- | ------- | ---------------------------------------------- |
+| `claude_code.enabled`  | boolean | Enable Claude Code tracking (default: true)    |
+| `cursor.enabled`       | boolean | Enable Cursor tracking                         |
+| `cursor.db_path`       | string  | Override auto-detected Cursor data path        |
+| `copilot.enabled`      | boolean | Enable GitHub Copilot tracking                 |
+| `copilot.monthly_cost` | number  | Your Copilot subscription cost per seat in USD |
+| `windsurf.enabled`     | boolean | Enable Windsurf tracking                       |
+| `windsurf.api_key`     | string  | Windsurf API key for usage polling             |
+| `devin.enabled`        | boolean | Enable Devin tracking                          |
+| `devin.api_key`        | string  | Devin read-only API key                        |
+| `aider.enabled`        | boolean | Enable Aider tracking                          |
+| `continue_dev.enabled` | boolean | Enable Continue.dev tracking                   |
+| `cline.enabled`        | boolean | Enable Cline tracking                          |
+| `amazon_q.enabled`     | boolean | Enable Amazon Q tracking                       |
+| `bolt.enabled`         | boolean | Enable Bolt tracking                           |
+| `bolt.monthly_cost`    | number  | Your Bolt subscription cost per seat in USD    |
+| `lovable.enabled`      | boolean | Enable Lovable tracking                        |
+| `lovable.monthly_cost` | number  | Your Lovable subscription cost per seat in USD |
 
 ### sync
 
@@ -117,6 +121,15 @@ Webhook URLs for budget alert notifications. Alerts fire when your spend crosses
 | `currency` | string | `USD`   | Display currency (USD)                           |
 | `timezone` | string | local   | Timezone used for daily grouping in `kova costs` |
 
+### orchestration
+
+Controls AI orchestration behavior for `kova run` and `kova chat`.
+
+| Field            | Type    | Default | Description                                                     |
+| ---------------- | ------- | ------- | --------------------------------------------------------------- |
+| `fallback`       | boolean | `true`  | Enable smart model fallback on rate limits and server errors    |
+| `session_budget` | number  | `null`  | Default session budget cap in USD (overridden by --budget flag) |
+
 ## Common Configuration Tasks
 
 ### Enable a Collector
@@ -141,6 +154,18 @@ kova config set notifications.budget_warn.slack "https://hooks.slack.com/..."
 
 ```bash
 kova config set sync.upload_since_days 30
+```
+
+### Enable/Disable Model Fallback
+
+```bash
+kova config set orchestration.fallback false
+```
+
+### Set a Default Session Budget
+
+```bash
+kova config set orchestration.session_budget 5.00
 ```
 
 ### View Current Config

@@ -1,0 +1,106 @@
+---
+title: kova bench
+description: Benchmark a prompt against multiple AI models side-by-side with cost, speed, and token comparison
+---
+
+# kova bench
+
+Benchmark a prompt against multiple models side-by-side. Runs the same prompt through each model sequentially, records cost and response time, then displays a comparison table showing cost, speed, token usage, and response previews. By default, benchmarks the three routing tiers (haiku, sonnet, opus).
+
+## Usage
+
+```bash
+kova bench <prompt> [flags]
+```
+
+## Flags
+
+| Flag         | Type    | Default             | Description                                                   |
+| ------------ | ------- | ------------------- | ------------------------------------------------------------- |
+| `--models`   | string  | `haiku,sonnet,opus` | Comma-separated model names (e.g. `sonnet,gpt-4o,gemini-pro`) |
+| `--no-tools` | boolean | false               | Disable tools for pure text comparison                        |
+
+## Model Short Names
+
+You can use short names instead of full model identifiers:
+
+| Short Name     | Model            |
+| -------------- | ---------------- |
+| `haiku`        | claude-haiku-3-5 |
+| `sonnet`       | claude-sonnet-4  |
+| `opus`         | claude-opus-4    |
+| `gpt-4o`       | gpt-4o           |
+| `gpt-4.1`      | gpt-4.1          |
+| `o3`           | o3               |
+| `gemini-flash` | gemini-2.5-flash |
+| `gemini-pro`   | gemini-2.5-pro   |
+
+## Examples
+
+### Benchmark with default models
+
+```bash
+kova bench "explain how React Server Components work"
+```
+
+```
+  Benchmarking across 3 models...
+
+  [1/3] claude-haiku-3-5 .......... done (1.2s)
+  [2/3] claude-sonnet-4 ........... done (3.8s)
+  [3/3] claude-opus-4 ............. done (6.1s)
+
+  Benchmark Results
+  ==================================================
+
+  Model              Cost      Time     Tokens In  Tokens Out  Preview
+  ─────────────────────────────────────────────────────────────────────────
+  claude-haiku-3-5   $0.001    1.2s     480        620         React Server Components let you...
+  claude-sonnet-4    $0.012    3.8s     480        1,840       React Server Components (RSC) a...
+  claude-opus-4      $0.084    6.1s     480        2,400       React Server Components represe...
+
+  Cheapest: claude-haiku-3-5 ($0.001)
+  Fastest: claude-haiku-3-5 (1.2s)
+  Most detailed: claude-opus-4 (2,400 tokens)
+```
+
+### Compare specific models
+
+```bash
+kova bench "write a binary search function in TypeScript" --models sonnet,gpt-4o,gemini-pro
+```
+
+```
+  Benchmarking across 3 models...
+
+  [1/3] claude-sonnet-4 ........... done (2.9s)
+  [2/3] gpt-4o .................... done (2.1s)
+  [3/3] gemini-2.5-pro ........... done (3.4s)
+
+  Benchmark Results
+  ==================================================
+
+  Model              Cost      Time     Tokens In  Tokens Out  Preview
+  ─────────────────────────────────────────────────────────────────────────
+  claude-sonnet-4    $0.009    2.9s     320        1,200       function binarySearch<T>(arr: T...
+  gpt-4o             $0.007    2.1s     320        980         function binarySearch(arr: numb...
+  gemini-2.5-pro     $0.011    3.4s     320        1,440       function binarySearch<T>(sorted...
+
+  Cheapest: gpt-4o ($0.007)
+  Fastest: gpt-4o (2.1s)
+  Most detailed: gemini-2.5-pro (1,440 tokens)
+```
+
+### Pure text comparison without tools
+
+```bash
+kova bench "summarize the pros and cons of microservices" --no-tools
+```
+
+Disabling tools ensures all models produce text-only responses, making the comparison more apples-to-apples.
+
+## Related
+
+- [kova run](/docs/commands/run) - Execute a task with a single model
+- [kova compare](/docs/commands/compare) - Compare historical costs across tools and models
+- [kova costs](/docs/commands/costs) - View cost breakdown after benchmarking

@@ -1,0 +1,84 @@
+---
+title: kova hook
+description: Install a Claude Code integration hook that automatically tracks AI usage after each session
+---
+
+# kova hook
+
+Install a Claude Code integration hook that automatically tracks AI usage after each session. The hook adds a `PostToolUse` Stop event to `.claude/settings.json` in the current project directory. When Claude Code finishes a tool use, the hook runs `kova track --tool claude_code --quiet` to capture the latest usage data.
+
+## Usage
+
+```bash
+kova hook install
+```
+
+## What It Does
+
+Running `kova hook install` adds the following configuration to your project's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "kova track --tool claude_code --quiet 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The hook fires at the end of each Claude Code session, silently recording usage data (cost, tokens, model, duration) into Kova's local database. The `2>/dev/null || true` suffix ensures the hook never interrupts Claude Code, even if Kova is not installed or encounters an error.
+
+## Examples
+
+### Install the hook
+
+```bash
+kova hook install
+```
+
+```
+  Hook installed successfully.
+  Added Stop hook to .claude/settings.json
+  Claude Code will now auto-track usage via Kova.
+```
+
+### Idempotent installation
+
+Running the command again when the hook is already present has no effect:
+
+```bash
+kova hook install
+```
+
+```
+  Hook already installed in .claude/settings.json
+```
+
+### Merging with existing settings
+
+If your project already has a `.claude/settings.json` with other configuration, the hook is merged in without overwriting existing settings. Your current permissions, allowed tools, and other preferences remain untouched.
+
+## Verifying the Hook
+
+After installation, you can confirm the hook is active by checking your settings file:
+
+```bash
+cat .claude/settings.json | jq '.hooks'
+```
+
+Once installed, every Claude Code session in that project will automatically call `kova track`, so your costs appear in `kova costs`, `kova history`, and `kova dashboard` without any manual tracking step.
+
+## Related
+
+- [kova track](/docs/commands/track) - Manually trigger a usage data scan
+- [kova costs](/docs/commands/costs) - View tracked costs after the hook captures data
+- [kova history](/docs/commands/history) - Review session history populated by the hook

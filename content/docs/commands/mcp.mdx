@@ -1,0 +1,101 @@
+---
+title: kova mcp
+description: Start Kova as a Model Context Protocol (MCP) server exposing cost data as resources and tools for AI assistants
+---
+
+# kova mcp
+
+Start Kova as a Model Context Protocol (MCP) server using stdio transport. This exposes Kova's cost data as MCP resources and tools that AI assistants (like Claude Desktop) can query directly.
+
+## Usage
+
+```bash
+kova mcp
+```
+
+## Resources
+
+The MCP server exposes the following resources that clients can read:
+
+| Resource        | URI                    | Description                                                                             |
+| --------------- | ---------------------- | --------------------------------------------------------------------------------------- |
+| `costs-today`   | `kova://costs/today`   | Today's cost summary with total cost, sessions, tokens, and breakdown by tool and model |
+| `costs-week`    | `kova://costs/week`    | Last 7 days cost summary with daily breakdown                                           |
+| `budget-status` | `kova://budget/status` | Current budget status showing monthly and daily spend vs configured limits              |
+
+## Tools
+
+The MCP server provides the following tools that AI assistants can call:
+
+### get_costs
+
+Get a cost summary for a given period, optionally filtered by tool or project.
+
+**Input:**
+
+| Parameter | Type   | Required | Description                                     |
+| --------- | ------ | -------- | ----------------------------------------------- |
+| `period`  | string | yes      | Time period: `today`, `week`, `month`, or `all` |
+| `tool`    | string | no       | Filter by tool name (e.g. `claude_code`)        |
+| `project` | string | no       | Filter by project name                          |
+
+### budget_check
+
+Check current budget status with spending alerts. Takes no parameters.
+
+### track_usage
+
+Trigger a scan of AI tool usage data.
+
+**Input:**
+
+| Parameter | Type   | Required | Description                                  |
+| --------- | ------ | -------- | -------------------------------------------- |
+| `tool`    | string | no       | Specific tool to scan (scans all if omitted) |
+
+## Claude Desktop Configuration
+
+To use Kova as an MCP server in Claude Desktop, add the following to your Claude Desktop configuration file:
+
+```json
+{
+  "mcpServers": {
+    "kova": {
+      "command": "kova",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+On macOS, the config file is located at `~/Library/Application Support/Claude/claude_desktop_config.json`.
+
+## Examples
+
+### Start the MCP server
+
+```bash
+kova mcp
+```
+
+The server starts and listens on stdio. It does not produce terminal output since all communication happens over the MCP protocol.
+
+### Query costs from Claude Desktop
+
+Once configured, you can ask Claude Desktop questions like:
+
+- "How much have I spent on AI today?"
+- "What's my budget status?"
+- "Show me this week's AI costs by model."
+
+Claude Desktop will call the Kova MCP tools behind the scenes and present the results in the conversation.
+
+### Use with other MCP clients
+
+Any MCP-compatible client can connect to Kova. Start the server and point your client's stdio transport at the `kova mcp` command.
+
+## Related
+
+- [kova costs](/docs/commands/costs) - View costs directly in the terminal
+- [kova budget](/docs/commands/budget) - Configure budget limits that the MCP server reports on
+- [kova track](/docs/commands/track) - Manually trigger usage tracking

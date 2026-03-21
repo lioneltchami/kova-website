@@ -17,27 +17,33 @@ Install once. Get a unified view of what your AI tools actually cost -- per deve
 
 ## Commands
 
-| Command                  | Purpose                                                                  |
-| ------------------------ | ------------------------------------------------------------------------ |
-| `kova init`              | Interactive setup wizard -- detect tools and run your first cost scan    |
-| `kova track`             | Scan and record AI tool usage data                                       |
-| `kova costs`             | Display cost breakdown by tool, model, project, or date                  |
-| `kova compare`           | Compare AI tool or model costs side-by-side with efficiency metrics      |
-| `kova budget`            | Set and manage spending budgets with alert thresholds                    |
-| `kova sync`              | Push local usage records to the cloud dashboard                          |
-| `kova report`            | Generate a cost report for a period (CSV, JSON, or terminal)             |
-| `kova audit`             | Export a full audit log of usage records in JSON or CSV                  |
-| `kova ci-report`         | Generate a structured cost report for CI/CD pipelines                    |
-| `kova tag`               | Map a project to a cost center for team budget tracking                  |
-| `kova data export`       | Export your local usage database to a JSON file                          |
-| `kova dashboard`         | Open the Kova web dashboard in your browser                              |
-| `kova sso`               | Configure SSO authentication for enterprise environments                 |
-| `kova policy`            | List, set, and enforce organization-level policies (Team/Enterprise)     |
-| `kova config`            | View and edit configuration                                              |
-| `kova login`             | Authenticate the CLI with your Kova dashboard API key                    |
-| `kova logout`            | Remove stored credentials                                                |
-| `kova account`           | View your Kova account and subscription details                          |
-| `kova completions`       | Install shell tab completions                                            |
+| Command            | Purpose                                                               |
+| ------------------ | --------------------------------------------------------------------- |
+| `kova init`        | Interactive setup wizard -- detect tools and run your first cost scan |
+| `kova track`       | Scan and record AI tool usage data                                    |
+| `kova costs`       | Display cost breakdown by tool, model, project, or date               |
+| `kova compare`     | Compare AI tool or model costs side-by-side with efficiency metrics   |
+| `kova budget`      | Set and manage spending budgets with alert thresholds                 |
+| `kova sync`        | Push local usage records to the cloud dashboard                       |
+| `kova report`      | Generate a cost report for a period (CSV, JSON, or terminal)          |
+| `kova audit`       | Export a full audit log of usage records in JSON or CSV               |
+| `kova ci-report`   | Generate a structured cost report for CI/CD pipelines                 |
+| `kova tag`         | Map a project to a cost center for team budget tracking               |
+| `kova data export` | Export your local usage database to a JSON file                       |
+| `kova dashboard`   | Open the Kova web dashboard in your browser                           |
+| `kova sso`         | Configure SSO authentication for enterprise environments              |
+| `kova policy`      | List, set, and enforce organization-level policies (Team/Enterprise)  |
+| `kova config`      | View and edit configuration                                           |
+| `kova login`       | Authenticate the CLI with your Kova dashboard API key                 |
+| `kova logout`      | Remove stored credentials                                             |
+| `kova account`     | View your Kova account and subscription details                       |
+| `kova completions` | Install shell tab completions                                         |
+| `kova run`         | Execute AI coding tasks with intelligent model routing                |
+| `kova chat`        | Start an interactive AI coding chat session                           |
+| `kova history`     | View past AI session history with costs                               |
+| `kova bench`       | Benchmark a prompt against multiple models side-by-side               |
+| `kova hook`        | Install Claude Code integration hooks for automatic cost tracking     |
+| `kova mcp`         | Start Kova as an MCP server for AI assistants                         |
 
 ## Guides
 
@@ -46,6 +52,8 @@ Install once. Get a unified view of what your AI tools actually cost -- per deve
 - [Budget alerts](/docs/guides/budget-alerts) - Get notified before you overspend
 - [Enterprise RBAC](/docs/guides/enterprise-rbac) - Roles, cost centers, SSO, and policy enforcement
 - [CI/CD Integration](/docs/guides/ci-cd-integration) - GitHub Actions and GitLab CI with cost gates
+- [Smart Model Fallback](/docs/guides/model-fallback) - Automatic retry with cheaper models on rate limits
+- [MCP Server Integration](/docs/guides/mcp-integration) - Connect Kova to Claude Desktop and other MCP clients
 
 ## Enterprise
 

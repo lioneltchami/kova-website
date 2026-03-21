@@ -14,63 +14,75 @@ npx kova-cli init`,
     language: "bash",
   },
   {
-    label: "Init",
+    label: "Track",
     code: `# Navigate to your project
 cd your-project
 
-# Initialize Kova (interactive setup)
+# Interactive setup (detects your AI tools)
 kova init
 
-# Creates:
-#   .claude/skills/        specialist agent skills
-#   .claude/tasks/         session and plan files
-#   kova.yaml              project configuration`,
-    language: "bash",
-  },
-  {
-    label: "Plan",
-    code: `# Generate a structured plan
-kova plan "add user authentication"
-
-# With a specific template
-kova plan --template feature "add user authentication"
-
-# Link a GitHub issue
-kova plan --issue 42 "add user authentication"
+# Scan and record AI tool usage
+kova track
 
 # Output:
-#   Plan created: .claude/tasks/user-auth.md
-#   Tasks: 7 | Agents: 4 | Est: 2x haiku, 3x sonnet, 1x opus`,
+#   Scanning claude_code... 14 new records
+#   Scanning cursor... 8 new records
+#   Total: 22 records saved`,
     language: "bash",
   },
   {
-    label: "Build",
-    code: `# Execute the plan
-kova build --live
-
-# Resume after a crash or rate limit
-kova build --resume
-
-# Live output shows:
-#   [done]    setup-schema       haiku    38s
-#   [done]    build-api          sonnet   2m 12s
-#   [running] quality-validation sonnet   started 45s ago
-#   [pending] update-docs        haiku`,
-    language: "bash",
-  },
-  {
-    label: "Ship",
-    code: `# Create a GitHub PR
-kova pr
-
-# Create as draft PR
-kova pr --draft
+    label: "Costs",
+    code: `# View cost breakdown
+kova costs --week
 
 # Output:
-#   Branch: feat/user-auth -> main
-#   PR title: "feat: add user authentication"
-#   Linked issues: #42
-#   PR #43 created: https://github.com/org/repo/pull/43`,
+#   AI Tool Costs (Last 7 Days)
+#   ================================================
+#   Tool            Sessions  Cost      Cost/Session
+#   ------------------------------------------------
+#   claude-code     42        $18.40    $0.44
+#   cursor          89        $6.20     $0.07
+#   ------------------------------------------------
+#   Total: $24.60 across 131 sessions
+
+# Compare tools or models side-by-side
+kova compare --models`,
+    language: "bash",
+  },
+  {
+    label: "Run",
+    code: `# Execute AI coding tasks with cost tracking
+kova run "fix the auth bug in login.ts" --budget 2.00
+
+# Output:
+#   Complexity: moderate -> Claude Sonnet
+#   Context: 3 files (12 KB)
+#
+#   [response streams here...]
+#
+#   Cost    $0.0842
+#   Tokens  2,140 in / 1,680 out
+#   Duration 4.2s
+
+# Attach file context
+kova run "add tests" --include "src/**/*.ts"`,
+    language: "bash",
+  },
+  {
+    label: "Dashboard",
+    code: `# Sync usage data to the cloud
+kova sync
+
+# Open the web dashboard
+kova dashboard
+
+# Set spending budgets
+kova budget set --monthly 100 --daily 10
+
+# Output:
+#   Monthly budget: $100.00
+#   Daily budget: $10.00
+#   Warning threshold: 80%`,
     language: "bash",
   },
 ];
@@ -86,17 +98,17 @@ export function QuickStart() {
             </TextAnimate>
           </h2>
           <p className="text-[#C0C0C8]">
-            Five commands. Plan to merged PR. No configuration required to
-            start.
+            Five steps. Install to dashboard. Real-time cost visibility from day
+            one.
           </p>
         </div>
 
         <CodeBlock tabs={tabs} />
 
         <p className="mt-6 text-center text-sm text-[#C0C0C8]/50">
-          Requires Node.js 18+ and a Claude API key set as{" "}
+          Requires Node.js 18+. Add provider keys with{" "}
           <code className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-xs text-[#4361EE]">
-            ANTHROPIC_API_KEY
+            kova provider add
           </code>
         </p>
       </div>

@@ -1,0 +1,109 @@
+---
+title: kova chat
+description: Start an interactive AI coding chat session with conversation history, model switching, and per-turn cost tracking
+---
+
+# kova chat
+
+Start an interactive AI coding chat session (REPL). Maintains conversation history across turns, streams responses, and tracks per-turn costs. Supports model switching mid-session and session budget guards.
+
+## Usage
+
+```bash
+kova chat [flags]
+```
+
+## Flags
+
+| Flag         | Type   | Default | Description                                                             |
+| ------------ | ------ | ------- | ----------------------------------------------------------------------- |
+| `--model`    | string | auto    | Use a specific model (e.g. `anthropic:claude-sonnet-4-20250514`)        |
+| `--provider` | string | auto    | Use a specific provider (`anthropic`, `openai`, `google`, `openrouter`) |
+| `--tier`     | string | `mid`   | Use a model tier: `cheap`, `mid`, or `strong`                           |
+| `--budget`   | string | -       | Session budget cap in USD (e.g. `5.00`)                                 |
+
+## REPL Commands
+
+Once inside the chat session, the following commands are available:
+
+| Command          | Description                                           |
+| ---------------- | ----------------------------------------------------- |
+| `/model <id>`    | Switch to a different model mid-session               |
+| `/clear`         | Clear conversation history and start fresh            |
+| `/cost`          | Show session cost, number of turns, and budget status |
+| `exit` or `quit` | End the session (also Ctrl+C)                         |
+
+## Examples
+
+### Start a chat session
+
+```bash
+kova chat
+```
+
+```
+  Kova Chat (claude-sonnet-4-20250514)
+  Type /help for commands, exit to quit.
+
+  you> explain how the auth middleware works
+
+  The auth middleware in src/middleware/auth.ts validates JWT tokens
+  from the Authorization header. It checks token expiry, extracts
+  the user ID, and attaches it to the request context...
+
+  [$0.008 | 1,240 tokens]
+
+  you> refactor it to use sessions instead
+
+  Here's how to refactor the middleware to use session-based auth...
+
+  [$0.014 | 2,180 tokens]
+
+  you> /cost
+
+  Session Cost Summary
+  ──────────────────────
+  Turns: 2
+  Total cost: $0.022
+  Budget: no limit set
+
+  you> exit
+
+  Session ended. Total: $0.022 across 2 turns.
+```
+
+### Start with a specific model
+
+```bash
+kova chat --model anthropic:claude-opus-4-20250514
+```
+
+### Switch models mid-session
+
+```
+  you> /model gpt-4o
+
+  Switched to gpt-4o (openai). History preserved.
+```
+
+### Set a session budget
+
+```bash
+kova chat --budget 2.00
+```
+
+```
+  Kova Chat (claude-sonnet-4-20250514)
+  Budget: $2.00
+
+  you> ...
+```
+
+When spending approaches the budget cap, Kova displays a warning. If the budget is exceeded, the session ends gracefully.
+
+## Related
+
+- [kova run](/docs/commands/run) - Execute a single AI task without entering a REPL
+- [kova bench](/docs/commands/bench) - Benchmark a prompt against multiple models
+- [kova history](/docs/commands/history) - Review past chat session history
+- [kova costs](/docs/commands/costs) - View detailed cost breakdown

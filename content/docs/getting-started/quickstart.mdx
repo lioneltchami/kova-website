@@ -105,11 +105,24 @@ Budget created
 
 When you reach 80% of your budget, Kova will warn you on the next `kova costs` or `kova sync` run.
 
+## Step 6: Run an AI Coding Task
+
+Use Kova to execute an AI coding task with automatic cost tracking and intelligent model routing:
+
+```bash
+kova run "add input validation to the signup form"
+```
+
+Kova picks the best model for the task, streams the response, and records the cost automatically -- no manual `kova track` needed.
+
 ## The Daily Workflow
 
 Once collectors are configured for your tools (see [multi-tool tracking](/docs/guides/multi-tool-tracking)), the workflow is hands-off:
 
 ```bash
+# Run AI coding tasks with automatic cost tracking
+kova run "refactor the auth middleware"
+
 # Usage is recorded automatically by background collectors
 # Sync at the end of the day (or run on a schedule)
 kova sync

@@ -1,0 +1,109 @@
+---
+title: kova run
+description: Execute an AI coding task with intelligent model routing, complexity detection, and automatic cost tracking
+---
+
+# kova run
+
+Execute an AI coding task with intelligent model routing. Kova analyzes prompt complexity, selects the appropriate model tier, loads file context, streams the response, and records the cost. Supports smart model fallback on rate limits and session budget guards.
+
+## Usage
+
+```bash
+kova run <prompt> [flags]
+```
+
+## Flags
+
+| Flag           | Type    | Default | Description                                                             |
+| -------------- | ------- | ------- | ----------------------------------------------------------------------- |
+| `--model`      | string  | auto    | Use a specific model (e.g. `anthropic:claude-sonnet-4-20250514`)        |
+| `--provider`   | string  | auto    | Use a specific provider (`anthropic`, `openai`, `google`, `openrouter`) |
+| `--tier`       | string  | auto    | Use a model tier: `cheap`, `mid`, or `strong`                           |
+| `--dry-run`    | boolean | false   | Show what would happen without making changes                           |
+| `--auto-apply` | boolean | false   | Apply file edits without confirmation                                   |
+| `--context`    | string  | -       | Attach a file as context (repeatable)                                   |
+| `--include`    | string  | -       | Include files matching a glob pattern as context (repeatable)           |
+| `--budget`     | string  | -       | Session budget cap in USD (e.g. `1.50`)                                 |
+
+## Examples
+
+### Basic task execution
+
+```bash
+kova run "add input validation to the signup form"
+```
+
+```
+  Complexity: moderate (routing to mid tier)
+  Model: claude-sonnet-4-20250514 (anthropic)
+  Context: 2 files loaded (src/components/SignupForm.tsx, src/lib/validate.ts)
+
+  Analyzing signup form structure...
+  Adding validation rules for email, password, and name fields...
+  Writing updated SignupForm.tsx with Zod schema validation...
+
+  ┌──────────────────────────────────────────┐
+  │  Cost: $0.024                            │
+  │  Tokens: 3,412 in / 1,208 out           │
+  │  Duration: 8.2s                          │
+  └──────────────────────────────────────────┘
+```
+
+### Force a specific model tier
+
+```bash
+kova run "rename the variable x to userCount" --tier cheap
+```
+
+```
+  Complexity: trivial (using requested tier: cheap)
+  Model: claude-haiku-3-5 (anthropic)
+  Context: 1 file loaded (src/utils/analytics.ts)
+
+  Renaming variable x to userCount across 4 occurrences...
+
+  ┌──────────────────────────────────────────┐
+  │  Cost: $0.001                            │
+  │  Tokens: 820 in / 312 out               │
+  │  Duration: 1.4s                          │
+  └──────────────────────────────────────────┘
+```
+
+### Attach additional context files
+
+```bash
+kova run "refactor the API handler to match the new schema" \
+  --context src/schemas/user.ts \
+  --include "src/handlers/**/*.ts"
+```
+
+### Dry run to preview model selection
+
+```bash
+kova run "rewrite the auth module" --dry-run
+```
+
+```
+  [DRY RUN] Would execute with:
+    Complexity: complex
+    Model: claude-opus-4-20250514 (anthropic)
+    Tier: strong
+    Context files: 5
+    Budget: none set
+```
+
+### Set a budget cap
+
+```bash
+kova run "optimize the database queries" --budget 0.50
+```
+
+If the session cost approaches the budget cap, Kova will warn you and stop before exceeding it.
+
+## Related
+
+- [kova chat](/docs/commands/chat) - Start an interactive chat session instead of a one-shot task
+- [kova bench](/docs/commands/bench) - Benchmark a prompt against multiple models
+- [kova costs](/docs/commands/costs) - View cost breakdown after running tasks
+- [kova history](/docs/commands/history) - Review past session history

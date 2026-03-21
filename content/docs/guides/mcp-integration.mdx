@@ -1,0 +1,98 @@
+---
+title: MCP Server Integration
+description: Connect Kova to AI assistants like Claude Desktop using the Model Context Protocol
+---
+
+# MCP Server Integration
+
+Kova includes a built-in MCP (Model Context Protocol) server that lets AI assistants like Claude Desktop access your cost data, budget status, and usage tracking directly. Instead of switching to the terminal to check your spending, you can ask your AI assistant and get an answer inline.
+
+## What is MCP?
+
+Model Context Protocol is a standard that allows AI assistants to access external tools and data sources. When you connect Kova as an MCP server, your AI assistant gains the ability to query your AI spending data, check budget status, and trigger usage scans.
+
+## Starting the Server
+
+Run the MCP server with:
+
+```bash
+kova mcp
+```
+
+The server uses stdio transport, which means it communicates over standard input/output. You do not need to configure a port or URL. The AI assistant launches and manages the process automatically.
+
+## Available Resources
+
+The MCP server exposes three read-only resources that AI assistants can access:
+
+| Resource      | URI                    | Description                                                                      |
+| ------------- | ---------------------- | -------------------------------------------------------------------------------- |
+| costs-today   | `kova://costs/today`   | Today's total cost, session count, token usage, broken down by tool and by model |
+| costs-week    | `kova://costs/week`    | Last 7 days of spending with daily breakdown, by-tool and by-model summaries     |
+| budget-status | `kova://budget/status` | Monthly and daily budget vs. amount spent, warning percentage threshold          |
+
+## Available Tools
+
+The MCP server also exposes three tools that AI assistants can call:
+
+### get_costs
+
+Query cost data for a specific time period, optionally filtered by tool or project.
+
+**Parameters:**
+
+| Parameter | Type   | Required | Description                                             |
+| --------- | ------ | -------- | ------------------------------------------------------- |
+| `period`  | string | Yes      | One of `"today"`, `"week"`, `"month"`, `"all"`          |
+| `tool`    | string | No       | Filter by tool name (e.g., `"claude_code"`, `"cursor"`) |
+| `project` | string | No       | Filter by project name                                  |
+
+### budget_check
+
+Returns current monthly and daily spending against configured budgets, plus an array of any active alerts.
+
+**Parameters:** None.
+
+### track_usage
+
+Triggers a usage scan to collect the latest data from enabled collectors.
+
+**Parameters:**
+
+| Parameter | Type   | Required | Description                       |
+| --------- | ------ | -------- | --------------------------------- |
+| `tool`    | string | No       | Limit the scan to a specific tool |
+
+## Claude Desktop Configuration
+
+To connect Kova to Claude Desktop, add it to your Claude Desktop MCP configuration file.
+
+On macOS, edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "kova": {
+      "command": "kova",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+After saving the file, restart Claude Desktop. Kova will appear as an available MCP server.
+
+## Example Conversations
+
+Once connected, you can ask Claude Desktop questions about your AI spending:
+
+- **"How much have I spent today?"** - Claude calls `get_costs` with `period: "today"` and summarizes your spending.
+- **"Check my budget status"** - Claude calls `budget_check` and reports whether you are within limits.
+- **"What did I spend on Cursor this week?"** - Claude calls `get_costs` with `period: "week"` and `tool: "cursor"`.
+- **"Scan for new usage"** - Claude calls `track_usage` to pull the latest data from your collectors.
+
+## Related
+
+- [kova mcp](/docs/commands/mcp) - MCP command reference
+- [Budget Alerts](/docs/guides/budget-alerts) - Set up spending budgets and alerts
+- [kova costs](/docs/commands/costs) - View costs from the CLI

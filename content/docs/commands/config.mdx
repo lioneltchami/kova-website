@@ -42,15 +42,15 @@ Output:
   "collectors": {
     "claude_code": { "enabled": true },
     "cursor": { "enabled": true, "db_path": null },
-    "copilot": { "enabled": false, "monthly_cost": 19.00 },
+    "copilot": { "enabled": false, "monthly_cost": 19.0 },
     "windsurf": { "enabled": false, "api_key": null },
     "devin": { "enabled": false, "api_key": null },
     "aider": { "enabled": false },
     "continue_dev": { "enabled": false },
     "cline": { "enabled": false },
     "amazon_q": { "enabled": false },
-    "bolt": { "enabled": false, "monthly_cost": 20.00 },
-    "lovable": { "enabled": false, "monthly_cost": 25.00 }
+    "bolt": { "enabled": false, "monthly_cost": 20.0 },
+    "lovable": { "enabled": false, "monthly_cost": 25.0 }
   },
   "sync": {
     "auto_sync": false,
@@ -108,6 +108,13 @@ kova config set sync.auto_sync true
 kova config set display.timezone "America/New_York"
 ```
 
+### Configure AI Orchestration
+
+```bash
+kova config set orchestration.fallback true
+kova config set orchestration.session_budget 5.00
+```
+
 ### Get a Single Value
 
 ```bash
@@ -143,6 +150,8 @@ Common dot-notation keys for `kova config set`:
 | `notifications.budget_warn.slack` | string  | `https://hooks.slack.com/...` |
 | `display.timezone`                | string  | `America/Chicago`             |
 | `display.currency`                | string  | `USD`                         |
+| `orchestration.fallback`          | boolean | `true`                        |
+| `orchestration.session_budget`    | number  | `5.00`                        |
 
 ## Configuration File Location
 

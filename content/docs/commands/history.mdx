@@ -1,0 +1,85 @@
+---
+title: kova history
+description: View past AI session history with costs, token counts, and duration grouped by session
+---
+
+# kova history
+
+View past AI session history with costs. Groups usage records by session, showing date, cost, model, project, token count, duration, and number of turns. Sessions are sorted by most recent first.
+
+## Usage
+
+```bash
+kova history [flags]
+```
+
+## Flags
+
+| Flag        | Type   | Default | Description                                              |
+| ----------- | ------ | ------- | -------------------------------------------------------- |
+| `--tool`    | string | all     | Filter by tool (e.g. `kova_orchestrator`, `claude_code`) |
+| `--project` | string | all     | Filter by project name                                   |
+| `--days`    | number | `30`    | Look back N days                                         |
+| `--limit`   | number | `50`    | Maximum number of sessions to show                       |
+
+## Examples
+
+### View recent session history
+
+```bash
+kova history
+```
+
+```
+  AI Session History (Last 30 Days)
+  ==================================================
+
+  Date        Tool           Model          Project     Cost     Tokens   Duration  Turns
+  ─────────────────────────────────────────────────────────────────────────────────────────
+  2026-03-20  claude-code    sonnet-4       kova-cli    $0.42    12,400   3m 12s    8
+  2026-03-20  kova           sonnet-4       kova-web    $0.18    5,200    1m 45s    1
+  2026-03-19  claude-code    opus-4         kova-cli    $2.84    8,800    5m 30s    14
+  2026-03-19  cursor         gpt-4o         myapp       $0.06    3,100    2m 08s    6
+  2026-03-18  claude-code    sonnet-4       kova-cli    $0.31    9,600    2m 55s    5
+  ...
+
+  Showing 50 of 127 sessions | Total cost: $48.22
+```
+
+### Filter by tool
+
+```bash
+kova history --tool claude_code
+```
+
+```
+  AI Session History - claude_code (Last 30 Days)
+  ==================================================
+
+  Date        Model          Project     Cost     Tokens   Duration  Turns
+  ──────────────────────────────────────────────────────────────────────────
+  2026-03-20  sonnet-4       kova-cli    $0.42    12,400   3m 12s    8
+  2026-03-19  opus-4         kova-cli    $2.84    8,800    5m 30s    14
+  2026-03-18  sonnet-4       kova-cli    $0.31    9,600    2m 55s    5
+  ...
+
+  Showing 42 of 42 sessions | Total cost: $38.60
+```
+
+### Filter by project
+
+```bash
+kova history --project myapp --days 7
+```
+
+### Increase the lookback window
+
+```bash
+kova history --days 90 --limit 100
+```
+
+## Related
+
+- [kova costs](/docs/commands/costs) - View aggregated cost breakdown with filtering
+- [kova compare](/docs/commands/compare) - Compare costs across tools or models
+- [kova report](/docs/commands/report) - Generate exportable cost reports

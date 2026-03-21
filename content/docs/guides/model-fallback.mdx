@@ -1,0 +1,106 @@
+---
+title: Smart Model Fallback
+description: How Kova automatically retries with cheaper models when rate-limited or when servers are unavailable
+---
+
+# Smart Model Fallback
+
+When an AI provider returns a rate limit error or a server error, Kova automatically retries your request using the next cheaper model in a predefined fallback chain. This keeps your workflows running without manual intervention, even during provider outages or heavy traffic periods.
+
+Smart fallback is enabled by default. It works in both `kova run` and `kova chat`.
+
+## How It Works
+
+When Kova sends a request to an AI model, it watches for retryable errors. If one is detected, Kova waits 1 second, then retries with the next model in the fallback chain. If that model also fails, it continues down the chain until either a model succeeds or no fallback models remain.
+
+```
+Request to claude-opus-4-20250115
+        |
+        v
+   Rate limited (429)
+        |
+        v
+   Wait 1 second
+        |
+        v
+   Retry with claude-sonnet-4-20250514
+        |
+        v
+   Success - continue with response
+```
+
+### Retryable Errors
+
+Kova detects the following errors as retryable:
+
+- **429** - Rate limit exceeded
+- **"too many requests"** - Rate limit message in response body
+- **500 / 502 / 503** - Server errors and gateway failures
+- **"overloaded"** - Provider capacity message
+- **"capacity"** - Provider capacity message
+
+Any other error (such as 401 unauthorized or 400 bad request) is not retried and is returned immediately.
+
+## Fallback Chains
+
+Each model has a defined chain of progressively cheaper alternatives:
+
+### Anthropic
+
+| Starting Model                       | Fallback 1                            | Fallback 2                            |
+| ------------------------------------ | ------------------------------------- | ------------------------------------- |
+| `anthropic:claude-opus-4-20250115`   | `anthropic:claude-sonnet-4-20250514`  | `anthropic:claude-haiku-4-5-20251001` |
+| `anthropic:claude-sonnet-4-20250514` | `anthropic:claude-haiku-4-5-20251001` | -                                     |
+
+### OpenAI
+
+| Starting Model   | Fallback 1            | Fallback 2            |
+| ---------------- | --------------------- | --------------------- |
+| `openai:o3`      | `openai:gpt-4o`       | `openai:gpt-4.1-mini` |
+| `openai:gpt-4o`  | `openai:gpt-4.1-mini` | `openai:gpt-4.1-nano` |
+| `openai:gpt-4.1` | `openai:gpt-4.1-mini` | `openai:gpt-4.1-nano` |
+
+### Google
+
+| Starting Model          | Fallback 1                | Fallback 2 |
+| ----------------------- | ------------------------- | ---------- |
+| `google:gemini-2.5-pro` | `google:gemini-2.5-flash` | -          |
+
+## Configuration
+
+Smart fallback is enabled by default. To disable it:
+
+```bash
+kova config set orchestration.fallback false
+```
+
+To re-enable it:
+
+```bash
+kova config set orchestration.fallback true
+```
+
+You can check the current setting with:
+
+```bash
+kova config get orchestration.fallback
+# true
+```
+
+## When Fallback Activates
+
+Fallback applies to all model calls made through `kova run` and `kova chat`. When a fallback occurs, Kova logs which model was used so you can see exactly what happened:
+
+```
+Running prompt with anthropic:claude-opus-4-20250115...
+Rate limited. Falling back to anthropic:claude-sonnet-4-20250514...
+Done.
+```
+
+The cost is tracked against the model that actually completed the request, not the originally requested model.
+
+## Related
+
+- [kova run](/docs/commands/run) - Run prompts with AI models
+- [kova chat](/docs/commands/chat) - Interactive chat sessions
+- [Configuration](/docs/getting-started/configuration) - Full config reference
