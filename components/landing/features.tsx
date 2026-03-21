@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import {
   BarChart3,
   GitBranch,
@@ -8,61 +9,26 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { type ReactNode } from "react";
 import { ShiftCard } from "@/components/ui/shift-card";
 import { StripeBgGuides } from "@/components/ui/stripe-bg-guides";
 import { TextAnimate } from "@/components/ui/text-animate";
 
-const features = [
-  {
-    title: "17+ Specialist Agents",
-    icon: <Users size={24} />,
-    description:
-      "Each agent is an expert in its domain: frontend, backend, database, security, quality, performance.",
-    hover:
-      "frontend-specialist, backend-engineer, database-architect, security-auditor, quality-engineer, performance-optimizer, and 11 more. Each one trained on its domain patterns.",
-  },
-  {
-    title: "Dependency-Aware Execution",
-    icon: <GitBranch size={24} />,
-    description:
-      "Tasks wait for prerequisites. No building on assumptions. Explicit task graphs.",
-    hover:
-      "Define task relationships with addBlockedBy and addBlocks. The hub orchestrator enforces order -- your frontend never starts before the API is validated.",
-  },
-  {
-    title: "Model Tiering",
-    icon: <Layers size={24} />,
-    description:
-      "Haiku for typos. Sonnet for features. Opus for architecture. 3-10x cost savings.",
-    hover:
-      "Auto-selects the right model per task. Trivial fixes use haiku ($0.25/M). Features use sonnet ($3/M). Architectural decisions get opus ($15/M). You only pay for what the task needs.",
-  },
-  {
-    title: "Crash Recovery",
-    icon: <ShieldCheck size={24} />,
-    description:
-      "Checkpoint every task. Resume with --resume. Never lose progress.",
-    hover:
-      "Every completed task writes a checkpoint. Rate limit? Power failure? Run kova build --resume and pick up exactly where you stopped. No wasted work.",
-  },
-  {
-    title: "Token Budget Tracking",
-    icon: <BarChart3 size={24} />,
-    description: "Per-task and per-build token usage. Warnings at 80% and 95%.",
-    hover:
-      "Real-time token counters per agent. Session-level budget warnings at 80% and 95% thresholds. Know your costs before the bill arrives.",
-  },
-  {
-    title: "GitHub Integration",
-    icon: <Github size={24} />,
-    description:
-      "Auto-branches, issue linking, PR creation. Idea to merged PR.",
-    hover:
-      "kova pr creates a branch, writes a PR title and body, links related issues, and opens the PR -- all from the session context. Zero context switching.",
-  },
+const featureIcons: ReactNode[] = [
+  <Users key="users" size={24} />,
+  <GitBranch key="gitbranch" size={24} />,
+  <Layers key="layers" size={24} />,
+  <ShieldCheck key="shield" size={24} />,
+  <BarChart3 key="barchart" size={24} />,
+  <Github key="github" size={24} />,
 ];
 
+const featureKeys = [1, 2, 3, 4, 5, 6] as const;
+
 export function Features() {
+  const t = useTranslations("features");
+
   return (
     <section className="relative py-24 px-4 overflow-hidden">
       <StripeBgGuides color="#4361EE" count={6} />
@@ -70,30 +36,38 @@ export function Features() {
       <div className="relative z-10 mx-auto max-w-6xl">
         <div className="mb-14 text-center">
           <h2 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
-            <TextAnimate animation="slideUp">
-              Built for Developers Who Ship
-            </TextAnimate>
+            <TextAnimate animation="slideUp">{t("heading")}</TextAnimate>
           </h2>
           <p className="mx-auto max-w-xl text-gray-700 dark:text-kova-silver">
-            Every feature is designed around one goal: getting correct,
-            validated code merged -- faster.
+            {t("subheading")}
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => (
-            <ShiftCard
-              key={feature.title}
-              title={feature.title}
-              icon={feature.icon}
-              hoverContent={
-                <p className="text-sm leading-relaxed text-gray-700 dark:text-kova-silver">
-                  {feature.hover}
-                </p>
-              }
+          {featureKeys.map((num, idx) => (
+            <motion.div
+              key={num}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{
+                duration: 0.45,
+                delay: idx * 0.08,
+                ease: "easeOut",
+              }}
             >
-              {feature.description}
-            </ShiftCard>
+              <ShiftCard
+                title={t(`feature${num}Title`)}
+                icon={featureIcons[idx]}
+                hoverContent={
+                  <p className="text-sm leading-relaxed text-gray-700 dark:text-kova-silver">
+                    {t(`feature${num}Hover`)}
+                  </p>
+                }
+              >
+                {t(`feature${num}Description`)}
+              </ShiftCard>
+            </motion.div>
           ))}
         </div>
       </div>

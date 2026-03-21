@@ -1,6 +1,12 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { WolfLogo } from "@/components/landing/wolf-logo";
 import { BgAnimateButton } from "@/components/ui/bg-animate-button";
@@ -10,8 +16,25 @@ import { NeumorphEyebrow } from "@/components/ui/neumorph-eyebrow";
 import { TerminalAnimation } from "@/components/ui/terminal-animation";
 import { Typewriter } from "@/components/ui/typewriter";
 
+const heroContainer = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.12, delayChildren: 0.2 },
+  },
+};
+
+const heroItem = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" as const },
+  },
+};
+
 function CopyInstallButton() {
   const [copied, setCopied] = useState(false);
+  const t = useTranslations("common");
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText("npx kova-cli init");
@@ -20,46 +43,65 @@ function CopyInstallButton() {
   };
 
   return (
-    <button
+    <motion.button
       onClick={handleCopy}
+      whileTap={{ scale: 0.95 }}
+      animate={copied ? { scale: [1, 1.05, 1] } : {}}
+      transition={{ duration: 0.3 }}
       className="relative inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-kova-blue to-kova-blue-light text-white font-semibold text-sm hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-blue focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-kova-charcoal"
     >
-      {copied ? (
-        <>
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <AnimatePresence mode="wait" initial={false}>
+        {copied ? (
+          <motion.span
+            key="copied"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+            className="inline-flex items-center gap-2"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-          Copied!
-        </>
-      ) : (
-        <>
-          <span className="font-mono">npx kova-cli init</span>
-          <svg
-            className="w-4 h-4 opacity-60"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            {t("copied")}
+          </motion.span>
+        ) : (
+          <motion.span
+            key="copy"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+            className="inline-flex items-center gap-2"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-            />
-          </svg>
-        </>
-      )}
-    </button>
+            <span className="font-mono">{t("copyInstall")}</span>
+            <svg
+              className="w-4 h-4 opacity-60"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
   );
 }
 
@@ -126,6 +168,8 @@ const TERMINAL_SCENARIOS = [
 ];
 
 export function Hero() {
+  const t = useTranslations("hero");
+  const tCommon = useTranslations("common");
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -174,78 +218,97 @@ export function Hero() {
       />
 
       {/* Content */}
-      <div className="relative z-10 text-center max-w-4xl mx-auto pt-20 pb-16">
+      <motion.div
+        className="relative z-10 text-center max-w-4xl mx-auto pt-20 pb-16"
+        variants={heroContainer}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Badge */}
-        <div className="mb-6 flex justify-center">
-          <NeumorphEyebrow variant="primary">
-            v1.0 -- Open Source
-          </NeumorphEyebrow>
-        </div>
+        <motion.div className="mb-6 flex justify-center" variants={heroItem}>
+          <NeumorphEyebrow variant="primary">{t("badge")}</NeumorphEyebrow>
+        </motion.div>
 
         {/* Main Heading */}
-        <h1 className="mb-3 leading-tight">
+        <motion.h1 className="mb-3 leading-tight" variants={heroItem}>
           <GradientHeading
             as="span"
             className="block text-5xl sm:text-6xl md:text-7xl font-bold"
             gradient={{ from: "#C0C0C8", to: "#4361EE" }}
           >
-            Know what AI costs.
+            {t("headline1")}
           </GradientHeading>
           <GradientHeading
             as="span"
             className="block text-5xl sm:text-6xl md:text-7xl font-bold"
             gradient={{ from: "#C0C0C8", to: "#4361EE" }}
           >
-            Before it adds up.
+            {t("headline2")}
           </GradientHeading>
-        </h1>
+        </motion.h1>
 
         {/* Subtitle typewriter */}
-        <div className="mt-6 mb-10 text-lg sm:text-xl text-gray-500 dark:text-kova-silver-dim min-h-[2rem]">
+        <motion.div
+          className="mt-6 mb-10 text-lg sm:text-xl text-gray-500 dark:text-kova-silver-dim min-h-[2rem]"
+          variants={heroItem}
+        >
           <Typewriter
-            phrases={[
-              "Track AI spend across Claude Code, Cursor, and more.",
-              "5 AI tools. One CLI. Real-time cost visibility.",
-              "Catch budget overruns before they hit your bill.",
-            ]}
+            phrases={[t("phrase1"), t("phrase2"), t("phrase3")]}
             typingSpeed={55}
             deletingSpeed={25}
             pauseDuration={2000}
             className="font-mono"
           />
-        </div>
+        </motion.div>
 
         {/* Terminal Demo */}
-        <div className="mb-10 mx-auto max-w-2xl">
+        <motion.div
+          className="mb-10 mx-auto max-w-2xl"
+          variants={heroItem}
+        >
           <TerminalAnimation
             scenarios={TERMINAL_SCENARIOS}
             className="text-left shadow-2xl shadow-kova-blue/10"
           />
-        </div>
+        </motion.div>
 
         {/* CTAs */}
-        <div className="flex flex-wrap gap-4 justify-center" id="quickstart">
+        <motion.div
+          className="flex flex-wrap gap-4 justify-center"
+          id="quickstart"
+          variants={heroItem}
+        >
           <CopyInstallButton />
           <BgAnimateButton href="/docs" variant="ghost">
-            Read the Docs
+            {tCommon("readTheDocs")}
           </BgAnimateButton>
-        </div>
+        </motion.div>
 
         {/* Subtle stats row */}
-        <div className="mt-14 flex flex-wrap justify-center gap-8 text-sm text-gray-500 dark:text-kova-silver-dim">
+        <motion.div
+          className="mt-14 flex flex-wrap justify-center gap-8 text-sm text-gray-500 dark:text-kova-silver-dim"
+          variants={heroItem}
+        >
           {[
-            ["5", "AI Tools Tracked"],
-            ["$0", "To Start"],
-            ["Real-Time", "Cost Tracking"],
-            ["$15", "Per Seat / Month"],
-          ].map(([num, label]) => (
-            <div key={label} className="flex flex-col items-center gap-0.5">
-              <span className="text-2xl font-bold text-kova-blue">{num}</span>
-              <span className="tracking-wide uppercase text-xs">{label}</span>
+            { value: t("stat1Value"), label: t("stat1Label") },
+            { value: t("stat2Value"), label: t("stat2Label") },
+            { value: t("stat3Value"), label: t("stat3Label") },
+            { value: t("stat4Value"), label: t("stat4Label") },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="flex flex-col items-center gap-0.5"
+            >
+              <span className="text-2xl font-bold text-kova-blue">
+                {stat.value}
+              </span>
+              <span className="tracking-wide uppercase text-xs">
+                {stat.label}
+              </span>
             </div>
           ))}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </section>
   );
 }

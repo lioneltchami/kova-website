@@ -5,6 +5,7 @@ import {
   DateRangePicker,
   getDateRangeStart,
 } from "@/components/dashboard/date-range-picker";
+import { LiveIndicator } from "@/components/dashboard/live-indicator";
 import { RealtimeUsageProvider } from "@/components/dashboard/realtime-usage-provider";
 import { UsageFilters } from "@/components/dashboard/usage-filters";
 import {
@@ -95,67 +96,57 @@ export default async function UsagePage({ searchParams }: UsagePageProps) {
   }));
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+    <RealtimeUsageProvider userId={user.id} initialRecords={typedRecords}>
+      {(liveRecords, isLive) => (
         <div>
-          <h1 className="text-2xl font-bold text-white">Usage</h1>
-          <p className="text-sm text-kova-silver-dim mt-0.5">
-            Detailed AI tool usage records
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <CsvExportButton
-            range={range}
-            tool={toolFilter}
-            model={modelFilter}
-            project={projectSearch}
-          />
-          <Suspense fallback={null}>
-            <DateRangePicker />
-          </Suspense>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-kova-surface border border-kova-border rounded-xl p-4 mb-6">
-        <Suspense fallback={null}>
-          <UsageFilters
-            tools={distinctTools}
-            models={distinctModels}
-            currentTool={toolFilter}
-            currentModel={modelFilter}
-            currentProject={projectSearch}
-          />
-        </Suspense>
-      </div>
-
-      {/* Table */}
-      <div className="bg-kova-surface border border-kova-border rounded-xl p-6">
-        <Suspense
-          fallback={
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-10 bg-kova-charcoal-light rounded animate-pulse"
-                />
-              ))}
+          {/* Header */}
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-white">Usage</h1>
+                <LiveIndicator isLive={isLive} />
+              </div>
+              <p className="text-sm text-kova-silver-dim mt-0.5">
+                Detailed AI tool usage records
+              </p>
             </div>
-          }
-        >
-          <RealtimeUsageProvider userId={user.id} initialRecords={typedRecords}>
-            {(liveRecords) => (
-              <UsageTable
-                records={liveRecords as UsageRecord[]}
-                totalCount={count ?? 0}
-                page={page}
-                pageSize={PAGE_SIZE}
+            <div className="flex items-center gap-3">
+              <CsvExportButton
+                range={range}
+                tool={toolFilter}
+                model={modelFilter}
+                project={projectSearch}
               />
-            )}
-          </RealtimeUsageProvider>
-        </Suspense>
-      </div>
-    </div>
+              <Suspense fallback={null}>
+                <DateRangePicker />
+              </Suspense>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="bg-kova-surface border border-kova-border rounded-xl p-4 mb-6">
+            <Suspense fallback={null}>
+              <UsageFilters
+                tools={distinctTools}
+                models={distinctModels}
+                currentTool={toolFilter}
+                currentModel={modelFilter}
+                currentProject={projectSearch}
+              />
+            </Suspense>
+          </div>
+
+          {/* Table */}
+          <div className="bg-kova-surface border border-kova-border rounded-xl p-6">
+            <UsageTable
+              records={liveRecords as UsageRecord[]}
+              totalCount={count ?? 0}
+              page={page}
+              pageSize={PAGE_SIZE}
+            />
+          </div>
+        </div>
+      )}
+    </RealtimeUsageProvider>
   );
 }

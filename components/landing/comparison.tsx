@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import { Check, Minus, X } from "lucide-react";
 import { TextAnimate } from "@/components/ui/text-animate";
 
@@ -140,8 +143,16 @@ export function Comparison() {
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr
+                <motion.tr
                   key={row.feature}
+                  initial={{ opacity: 0, x: -16 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{
+                    duration: 0.35,
+                    delay: i * 0.06,
+                    ease: "easeOut",
+                  }}
                   className={`border-b border-kova-border/50 transition-colors hover:bg-white/[0.02] ${
                     i % 2 === 0 ? "bg-kova-surface" : "bg-kova-charcoal/30"
                   }`}
@@ -161,7 +172,7 @@ export function Comparison() {
                   <td className="px-6 py-4 text-center">
                     <CellValue value={row.cursor} />
                   </td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

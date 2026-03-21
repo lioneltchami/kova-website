@@ -1,30 +1,42 @@
+import { getTranslations } from "next-intl/server";
 import { WolfLogo } from "@/components/landing/wolf-logo";
+import { FooterLinks } from "@/components/landing/footer-links";
 
-const links = {
-  Product: [
-    { label: "Docs", href: "/docs" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "GitHub", href: "https://github.com/lioneltchami/kova-cli" },
-    { label: "npm", href: "https://www.npmjs.com/package/kova-cli" },
-  ],
-  Resources: [
-    { label: "Getting Started", href: "/docs/getting-started/installation" },
-    { label: "Commands", href: "/docs/commands/init" },
-    { label: "Guides", href: "/docs/guides/plan-templates" },
-  ],
-  Community: [
-    {
-      label: "GitHub Discussions",
-      href: "https://github.com/lioneltchami/kova-cli/discussions",
-    },
-    {
-      label: "Report Issue",
-      href: "https://github.com/lioneltchami/kova-cli/issues",
-    },
-  ],
-};
+export async function Footer() {
+  const t = await getTranslations("footer");
+  const tNav = await getTranslations("nav");
+  const tCommon = await getTranslations("common");
 
-export function Footer() {
+  const links = {
+    [t("product")]: [
+      { label: tNav("docs"), href: "/docs" },
+      { label: tNav("pricing"), href: "/pricing" },
+      {
+        label: tNav("github"),
+        href: "https://github.com/lioneltchami/kova-cli",
+      },
+      { label: tNav("npm"), href: "https://www.npmjs.com/package/kova-cli" },
+    ],
+    [t("resources")]: [
+      {
+        label: t("gettingStarted"),
+        href: "/docs/getting-started/installation",
+      },
+      { label: t("commands"), href: "/docs/commands/init" },
+      { label: t("guides"), href: "/docs/guides/plan-templates" },
+    ],
+    [t("community")]: [
+      {
+        label: t("githubDiscussions"),
+        href: "https://github.com/lioneltchami/kova-cli/discussions",
+      },
+      {
+        label: t("reportIssue"),
+        href: "https://github.com/lioneltchami/kova-cli/issues",
+      },
+    ],
+  };
+
   return (
     <footer className="border-t border-gray-200 dark:border-kova-border bg-gray-50 dark:bg-kova-surface py-8 px-4">
       <div className="mx-auto max-w-6xl">
@@ -38,13 +50,13 @@ export function Footer() {
                 Kova
               </span>
               <p className="text-xs text-gray-500 dark:text-kova-silver-dim/70">
-                Plan the hunt. Run the pack.
+                {t("tagline")}
               </p>
             </div>
           </div>
 
           {/* Link groups in a row */}
-          <div className="flex flex-wrap gap-x-12 gap-y-6">
+          <FooterLinks>
             {Object.entries(links).map(([group, items]) => (
               <div key={group}>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-kova-silver-dim/70">
@@ -64,13 +76,13 @@ export function Footer() {
                 </ul>
               </div>
             ))}
-          </div>
+          </FooterLinks>
         </div>
 
         {/* Bottom line */}
         <div className="mt-6 pt-4 border-t border-gray-200 dark:border-kova-border/50 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-gray-400 dark:text-kova-silver-dim/40">
-            MIT License | Built with Next.js
+            {tCommon("mitLicense")}
           </p>
           <p className="text-xs text-gray-400 dark:text-kova-silver-dim/40">
             &copy; {new Date().getFullYear()} Kova

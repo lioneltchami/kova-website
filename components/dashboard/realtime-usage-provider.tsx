@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 interface RealtimeUsageProviderProps {
 	userId: string;
 	initialRecords: any[];
-	children: (records: any[]) => React.ReactNode;
+	children: (records: any[], isLive: boolean) => React.ReactNode;
 }
 
 export function RealtimeUsageProvider({
@@ -14,6 +14,7 @@ export function RealtimeUsageProvider({
 	children,
 }: RealtimeUsageProviderProps) {
 	const [records, setRecords] = useState(initialRecords);
+	const [isLive, setIsLive] = useState(false);
 
 	useEffect(() => {
 		const supabase = createClient();
@@ -35,10 +36,13 @@ export function RealtimeUsageProvider({
 					});
 				},
 			)
-			.subscribe();
+			.subscribe((status) => {
+				setIsLive(status === "SUBSCRIBED");
+			});
 
 		return () => {
 			supabase.removeChannel(channel);
+			setIsLive(false);
 		};
 	}, [userId]);
 
@@ -46,5 +50,5 @@ export function RealtimeUsageProvider({
 		setRecords(initialRecords);
 	}, [initialRecords]);
 
-	return <>{children(records)}</>;
+	return <>{children(records, isLive)}</>;
 }
